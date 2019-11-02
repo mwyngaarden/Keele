@@ -12,9 +12,9 @@ LIBS =
 # General compiler flags
 COMPILE_FLAGS = -std=c++17 -Wall -Wextra -pedantic
 # Additional release-specific flags
-RCOMPILE_FLAGS = -DNDEBUG -Ofast -mtune=native -flto
+RCOMPILE_FLAGS = -g -DNDEBUG -Ofast -mtune=native -flto
 # Additional debug-specific flags
-DCOMPILE_FLAGS = -O2 -mtune=native
+DCOMPILE_FLAGS = -ggdb3
 # General linker settings
 LINK_FLAGS =
 # Additional release-specific linker settings

@@ -67,23 +67,23 @@ namespace Gen {
 
         int side = pos.side();
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::Pawn); i++)
-            moves = add_pawn_moves(moves, pos, pos.get_psq(side, Piece::Pawn, i));
+        for (auto orig : pos.piece_list(side, Piece::Pawn))
+            moves = add_pawn_moves(moves, pos, orig);
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::Knight); i++)
-            moves = add_knight_moves(moves, pos, pos.get_psq(side, Piece::Knight, i));
+        for (auto orig : pos.piece_list(side, Piece::Knight))
+            moves = add_knight_moves(moves, pos, orig);
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::Bishop); i++)
-            moves = add_bishop_moves(moves, pos, pos.get_psq(side, Piece::Bishop, i));
+        for (auto orig : pos.piece_list(side, Piece::Bishop))
+            moves = add_bishop_moves(moves, pos, orig);
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::Rook); i++)
-            moves = add_rook_moves(moves, pos, pos.get_psq(side, Piece::Rook, i));
+        for (auto orig : pos.piece_list(side, Piece::Rook))
+            moves = add_rook_moves(moves, pos, orig);
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::Queen); i++)
-            moves = add_queen_moves(moves, pos, pos.get_psq(side, Piece::Queen, i));
+        for (auto orig : pos.piece_list(side, Piece::Queen))
+            moves = add_queen_moves(moves, pos, orig);
 
-        for (int i = 0; i < pos.get_pcount(side, Piece::King); i++)
-            moves = add_king_moves(moves, pos, pos.get_psq(side, Piece::King, i));
+        for (auto orig : pos.piece_list(side, Piece::King))
+            moves = add_king_moves(moves, pos, orig);
 
         return moves;
     }
@@ -108,23 +108,22 @@ namespace Gen {
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::Pawn));
 
-        Piece::Piece256 mflag = Piece::WhiteFlag256 << pos.side();
         Piece::Piece256 oflag = Piece::BlackFlag256 >> pos.side();
 
         int inc = pawn_inc(pos.side());
 
-        int mfile = sq88_file(orig);
-
-        int abs_rank = sq88_rank(orig);
         int rel_rank = sq88_rank(orig, pos.side());
 
-        assert(abs_rank >= Rank2 && abs_rank <= Rank7);
+        int dest;
+
         assert(rel_rank >= Rank2 && rel_rank <= Rank7);
 
         // promotions
 
         if (rel_rank == Rank7) {
-            if (int dest = orig + inc - 1; pos.square(dest) & oflag) {
+            dest = orig + inc - 1;
+
+            if (pos.square(dest) & oflag) {
                 Move m(orig, dest, pos.square(dest));
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -132,7 +131,10 @@ namespace Gen {
                 *moves++ = m | Move::PromoRookFlag;
                 *moves++ = m | Move::PromoQueenFlag;
             }
-            if (int dest = orig + inc + 1; pos.square(dest) & oflag) {
+
+            dest += 2;
+
+            if (pos.square(dest) & oflag) {
                 Move m(orig, dest, pos.square(dest));
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -140,7 +142,12 @@ namespace Gen {
                 *moves++ = m | Move::PromoRookFlag;
                 *moves++ = m | Move::PromoQueenFlag;
             }
-            if (int dest = orig + inc; pos.is_empty(dest)) {
+
+            // single push
+
+            dest -= 1;
+
+            if (pos.is_empty(dest)) {
                 Move m(orig, dest);
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -151,24 +158,32 @@ namespace Gen {
         }
         else {
             if (int ep_sq = pos.ep_sq(); rel_rank == Rank5 && ep_sq != SquareNone) {
-                if (abs(mfile - sq88_file(ep_sq)) == 1)
+                if (abs(sq88_file(orig) - sq88_file(ep_sq)) == 1)
                     *moves++ = Move(orig, pos.ep_sq(), pos.square(ep_sq - inc)) | Move::EPFlag;
             }
+
+            dest = orig + inc - 1;
             
-            if (int dest = orig + inc - 1; pos.square(dest) & oflag)
+            if (pos.square(dest) & oflag)
                 *moves++ = Move(orig, dest, pos.square(dest));
 
-            if (int dest = orig + inc + 1; pos.square(dest) & oflag)
+            dest += 2;
+
+            if (pos.square(dest) & oflag)
                 *moves++ = Move(orig, dest, pos.square(dest));
 
             // single push
+            
+            dest -= 1;
 
-            if (int dest = orig + inc; pos.is_empty(dest)) {
+            if (pos.is_empty(dest)) {
                 *moves++ = Move(orig, dest);
 
                 // double push
 
-                if (rel_rank == Rank2 && pos.is_empty(dest += inc))
+                dest += inc;
+
+                if (rel_rank == Rank2 && pos.is_empty(dest))
                     *moves++ = Move(orig, dest) | Gen::Move::DoubleFlag;
             }
         }
@@ -182,15 +197,18 @@ namespace Gen {
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::Knight));
 
-        for (auto dir : piece_dirs[Piece::Knight]) {
-            int dest = orig + dir;
+        Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 piece;
 
-            if (is_sq88(dest)) {
-                if (pos.is_empty(dest))
-                    *moves++ = Move(orig, dest);
-                else if (pos.is_op(dest))
-                    *moves++ = Move(orig, dest, pos.square(dest));
-            }
+        for (auto dir : piece_dirs[Piece::Knight]) {
+            int dest = orig;
+
+            piece = pos.square(dest += dir);
+
+            if (piece == Piece::PieceNone256)
+                *moves++ = Move(orig, dest);
+            else if (piece & ocolor)
+                *moves++ = Move(orig, dest, piece);
         }
 
         return moves;
@@ -202,19 +220,17 @@ namespace Gen {
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::Bishop));
 
-        Piece::Piece256 ecolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 piece;
 
         for (auto dir : piece_dirs[Piece::Bishop]) {
-            for (int dest = orig + dir; is_sq88(dest); dest += dir) {
-                if (pos.is_empty(dest))
-                    *moves++ = Move(orig, dest);
-                else {
-                    if (pos.is_op(dest))
-                        *moves++ = Move(orig, dest, pos.square(dest));
+            int dest = orig;
 
-                    break;
-                }
-            }
+            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+                *moves++ = Move(orig, dest);
+
+            if (piece & ocolor)
+                *moves++ = Move(orig, dest, piece);
         }
 
         return moves;
@@ -225,18 +241,18 @@ namespace Gen {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::Rook));
+        
+        Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 piece;
 
         for (auto dir : piece_dirs[Piece::Rook]) {
-            for (int dest = orig + dir; is_sq88(dest); dest += dir) {
-                if (pos.is_empty(dest))
-                    *moves++ = Move(orig, dest);
-                else {
-                    if (pos.is_op(dest))
-                        *moves++ = Move(orig, dest, pos.square(dest));
+            int dest = orig;
 
-                    break;
-                }
-            }
+            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+                *moves++ = Move(orig, dest);
+
+            if (piece & ocolor)
+                *moves++ = Move(orig, dest, piece);
         }
 
         return moves;
@@ -248,17 +264,17 @@ namespace Gen {
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::Queen));
 
-        for (auto dir : piece_dirs[Piece::Queen]) {
-            for (int dest = orig + dir; is_sq88(dest); dest += dir) {
-                if (pos.is_empty(dest))
-                    *moves++ = Move(orig, dest);
-                else {
-                    if (pos.is_op(dest))
-                        *moves++ = Move(orig, dest, pos.square(dest));
+        Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 piece;
 
-                    break;
-                }
-            }
+        for (auto dir : piece_dirs[Piece::Queen]) {
+            int dest = orig;
+
+            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+                *moves++ = Move(orig, dest);
+
+            if (piece & ocolor)
+                *moves++ = Move(orig, dest, piece);
         }
 
         return moves;
@@ -269,16 +285,19 @@ namespace Gen {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
         assert(pos.is_piece(orig, Piece::King));
+        
+        Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
+        Piece::Piece256 piece;
 
         for (auto dir : piece_dirs[Piece::King]) {
-            int dest = orig + dir;
+            int dest = orig;
 
-            if (is_sq88(dest)) {
-                if (pos.is_empty(dest))
-                    *moves++ = Move(orig, dest);
-                else if (pos.is_op(dest))
-                    *moves++ = Move(orig, dest, pos.square(dest));
-            }
+            piece = pos.square(dest += dir);
+
+            if (piece == Piece::PieceNone256)
+                *moves++ = Move(orig, dest);
+            else if (piece & ocolor)
+                *moves++ = Move(orig, dest, piece);
         }
 
         int king = pos.king_sq();

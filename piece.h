@@ -2,8 +2,11 @@
 #define PIECE_H
 
 #include <cstdint>
+#include "list.h"
 
 namespace Piece {
+
+    using PieceList = List<int, 10>;
     
     void init();
 

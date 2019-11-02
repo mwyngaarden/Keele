@@ -28,8 +28,6 @@ public:
     static constexpr int CastleFlags        = BlackCastleQFlag | WhiteCastleQFlag
                                             | BlackCastleKFlag | WhiteCastleKFlag;
 
-    static constexpr int piece_offsets[6] = { 0, 2, 11, 22, 33, 44 };
-
     Position(const std::string& fen = StartPos);
 
     void init();
@@ -49,9 +47,9 @@ public:
     
     inline const Piece::Piece256& square(int sq) const
     {
-        assert(sq >= -64 && sq < 192);
+        assert(sq >= -48 && sq < 176);
 
-        return square_[64 + sq];
+        return square_[48 + sq];
     }
 
     inline bool is_empty(int sq) const
@@ -90,36 +88,27 @@ public:
         return Piece::to_piece(square(sq)) == piece;
     }
 
-    inline const int* get_plist(int side, int piece) const
+    inline const Piece::PieceList& piece_list(int side, int piece) const
     {
         assert(Piece::side_is_ok(side));
         assert(Piece::piece_is_ok(piece));
 
-        return piece_sq_[side][piece];
-    }
-
-    inline int get_pcount(int side, int piece) const
-    {
-        assert(Piece::side_is_ok(side));
-        assert(Piece::piece_is_ok(piece));
-
-        return piece_count_[side][piece];
+        return pieces_[side][piece];
     }
 
     inline int get_psq(int side, int piece, int index) const
     {
         assert(Piece::side_is_ok(side));
         assert(Piece::piece_is_ok(piece));
-        assert(index < get_pcount(side, piece));
 
-        return piece_sq_[side][piece][index];
+        return pieces_[side][piece][index];
     }
 
     inline int king_sq(int side) const
     {
         assert(Piece::side_is_ok(side));
 
-        return piece_sq_[side][Piece::King][0];
+        return pieces_[side][Piece::King][0];
     }
 
     inline int king_sq() const
@@ -158,7 +147,7 @@ private:
     {
         assert(sq >= -48 && sq < 176);
 
-        return square_[64 + sq];
+        return square_[48 + sq];
     }
     
     void set_checks();
@@ -180,10 +169,9 @@ private:
     
     int check_sq_[2];
     
-    Gen::Move last_move_;
+    Gen::Move last_move_ = 0;
 
-    int piece_count_[2][6];
-    int piece_sq_[2][6][10 + 1];
+    Piece::PieceList pieces_[2][6];
 
 };
 

@@ -20,15 +20,6 @@ void Position::init()
 
     check_sq_[0] = SquareNone;
     check_sq_[1] = SquareNone;
-    
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 6; j++) {
-            piece_count_[i][j] = 0;
-
-            for (int k = 0; k < 10 + 1; k++)
-                piece_sq_[i][j][k] = SquareNone;
-        }
-    }
 }
 
 Position::Position(const string& fen)
@@ -186,7 +177,6 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     if (move.is_castle()) {
         int rook_orig = dest > orig ? orig + 3 : orig - 4;
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
-        Piece::Piece256 rook256 = square(rook_orig);
 
         move_piece(orig, dest);
         move_piece(rook_orig, rook_dest);
@@ -277,26 +267,24 @@ int Position::is_ok(bool incheck) const
     if (!Piece::side_is_ok(side_))
         return __LINE__;
         
-    if (piece_count_[Piece::White][Piece::King] != 1) return __LINE__;
-    if (piece_count_[Piece::Black][Piece::King] != 1) return __LINE__;
+    if (pieces_[Piece::White][Piece::King].size() != 1) return __LINE__;
+    if (pieces_[Piece::Black][Piece::King].size() != 1) return __LINE__;
 
-    if (!is_sq88(piece_sq_[Piece::White][Piece::King][0])) return __LINE__;
-    if (!is_sq88(piece_sq_[Piece::Black][Piece::King][0])) return __LINE__;
+    if (!is_sq88(pieces_[Piece::White][Piece::King][0])) return __LINE__;
+    if (!is_sq88(pieces_[Piece::Black][Piece::King][0])) return __LINE__;
     
-    int type_min[6] = { 0,  0,  0,  0, 0, 1 };
-    int type_max[6] = { 8, 10, 10, 10, 9, 1 };
+    size_t type_min[6] = { 0,  0,  0,  0, 0, 1 };
+    size_t type_max[6] = { 8, 10, 10, 10, 9, 1 };
 
-    int sq_count[128] = { };
+    size_t sq_count[128] = { };
 
     for (int side : { Piece::White, Piece::Black }) {
-        int all_count = 0;
+        size_t all_count = 0;
 
         for (int piece = Piece::Pawn; piece <= Piece::King; piece++) {
-            int type_count = 0;
+            size_t type_count = 0;
 
-            for (int i = 0; i < piece_count_[side][piece]; i++) {
-                int sq = piece_sq_[side][piece][i];
-
+            for (int sq : piece_list(side, piece)) {
                 if (!is_sq88(sq))
                     return __LINE__;
 
@@ -314,7 +302,7 @@ int Position::is_ok(bool incheck) const
                 type_count++;
             }
 
-            if (type_count != piece_count_[side][piece])
+            if (type_count != pieces_[side][piece].size())
                 return __LINE__;
 
             if (type_count < type_min[piece]) return __LINE__;
@@ -359,12 +347,8 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
 
     int side = p12 % 2;
     int piece = p12 / 2;
-   
-    {
-        int& count = piece_count_[side][piece];
 
-        piece_sq_[side][piece][count++] = sq;
-    }
+    pieces_[side][piece].add(sq);
 
     square(sq) = piece256;
 }
@@ -385,15 +369,7 @@ void Position::rem_piece(int sq)
     int side = p12 % 2;
     int piece = p12 / 2;
 
-    {
-        int* list = piece_sq_[side][piece];
-        
-        int& count = piece_count_[side][piece];
-
-        while (*list != sq) list++;
-
-        *list = piece_sq_[side][piece][--count];
-    }
+    pieces_[side][piece].rem(sq);
 
     square(sq) = Piece::PieceNone256;
 }
@@ -416,13 +392,7 @@ void Position::move_piece(int orig, int dest)
     int side = p12 & 1;
     int piece = p12 >> 1;
 
-    {
-        int* list = piece_sq_[side][piece];
-        
-        while (*list != orig) list++;
-
-        *list = dest;
-    }
+    pieces_[side][piece].replace(orig, dest);
 
     swap(square(orig), square(dest));
 }
@@ -444,16 +414,12 @@ bool Position::side_attacks(int side, int dest) const
     if (square(dest - inc - 1) == pawn256) return true;
     if (square(dest - inc + 1) == pawn256) return true;
 
-    for (int i = 0; i < piece_count_[side][Piece::Knight]; i++) {
-        int orig = piece_sq_[side][Piece::Knight][i];
-
+    for (int orig : pieces_[side][Piece::Knight]) {
         if (Gen::move_flag(orig, dest) & Piece::KnightFlag256)
             return true;
     }
 
-    for (int i = 0; i < piece_count_[side][Piece::Bishop]; i++) {
-        int orig = piece_sq_[side][Piece::Bishop][i];
-
+    for (int orig : pieces_[side][Piece::Bishop]) {
         if (Gen::move_flag(orig, dest) & Piece::BishopFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -465,9 +431,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
 
-    for (int i = 0; i < piece_count_[side][Piece::Rook]; i++) {
-        int orig = piece_sq_[side][Piece::Rook][i];
-
+    for (int orig : pieces_[side][Piece::Rook]) {
         if (Gen::move_flag(orig, dest) & Piece::RookFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -479,9 +443,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
     
-    for (int i = 0; i < piece_count_[side][Piece::Queen]; i++) {
-        int orig = piece_sq_[side][Piece::Queen][i];
-
+    for (int orig : pieces_[side][Piece::Queen]) {
         if (Gen::move_flag(orig, dest) & Piece::QueenFlags256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
