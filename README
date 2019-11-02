@@ -1,0 +1,3 @@
+change from returning and operation as bool to use != 
+
+allow king to move next to opponent king and remember to validate
