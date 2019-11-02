@@ -95,14 +95,31 @@ public:
         assert(Piece::side_is_ok(side));
         assert(Piece::piece_is_ok(piece));
 
-        return piece_type_pos_[side][piece];
+        return piece_sq_[side][piece];
+    }
+
+    inline int get_pcount(int side, int piece) const
+    {
+        assert(Piece::side_is_ok(side));
+        assert(Piece::piece_is_ok(piece));
+
+        return piece_count_[side][piece];
+    }
+
+    inline int get_psq(int side, int piece, int index) const
+    {
+        assert(Piece::side_is_ok(side));
+        assert(Piece::piece_is_ok(piece));
+        assert(index < get_pcount(side, piece));
+
+        return piece_sq_[side][piece][index];
     }
 
     inline int king_sq(int side) const
     {
         assert(Piece::side_is_ok(side));
 
-        return piece_type_pos_[side][Piece::King][0];
+        return piece_sq_[side][Piece::King][0];
     }
 
     inline int king_sq() const
@@ -135,26 +152,25 @@ public:
         check_sq_[0] = sq;
     }
 
-    inline void rem_checks()
-    {
-        check_sq_[0] = SquareNone;
-        check_sq_[1] = SquareNone;
-    }
-
-    // bool in_check(int side) const;
 
 private:
     inline Piece::Piece256& square(int sq)
     {
-        assert(sq >= -64 && sq < 192);
+        assert(sq >= -48 && sq < 176);
 
         return square_[64 + sq];
     }
     
     void set_checks();
     void set_checks(const Gen::Move& last_move);
+    
+    inline void rem_checks()
+    {
+        check_sq_[0] = SquareNone;
+        check_sq_[1] = SquareNone;
+    }
 
-    Piece::Piece256 square_[256];
+    Piece::Piece256 square_[16 * 14];
 
     int side_ = -1;
     int flags_ = 0;
@@ -166,8 +182,8 @@ private:
     
     Gen::Move last_move_;
 
-    int piece_type_count_[2][6];
-    int piece_type_pos_[2][6][10 + 1];
+    int piece_count_[2][6];
+    int piece_sq_[2][6][10 + 1];
 
 };
 

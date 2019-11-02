@@ -67,23 +67,23 @@ namespace Gen {
 
         int side = pos.side();
 
-        for (const int* plist = pos.get_plist(side, Piece::Pawn); *plist != SquareNone; plist++)
-            moves = add_pawn_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::Pawn); i++)
+            moves = add_pawn_moves(moves, pos, pos.get_psq(side, Piece::Pawn, i));
 
-        for (const int* plist = pos.get_plist(side, Piece::Knight); *plist != SquareNone; plist++)
-            moves = add_knight_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::Knight); i++)
+            moves = add_knight_moves(moves, pos, pos.get_psq(side, Piece::Knight, i));
 
-        for (const int* plist = pos.get_plist(side, Piece::Bishop); *plist != SquareNone; plist++)
-            moves = add_bishop_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::Bishop); i++)
+            moves = add_bishop_moves(moves, pos, pos.get_psq(side, Piece::Bishop, i));
 
-        for (const int* plist = pos.get_plist(side, Piece::Rook); *plist != SquareNone; plist++)
-            moves = add_rook_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::Rook); i++)
+            moves = add_rook_moves(moves, pos, pos.get_psq(side, Piece::Rook, i));
 
-        for (const int* plist = pos.get_plist(side, Piece::Queen); *plist != SquareNone; plist++)
-            moves = add_queen_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::Queen); i++)
+            moves = add_queen_moves(moves, pos, pos.get_psq(side, Piece::Queen, i));
 
-        for (const int* plist = pos.get_plist(side, Piece::King); *plist != SquareNone; plist++)
-            moves = add_king_moves(moves, pos, *plist);
+        for (int i = 0; i < pos.get_pcount(side, Piece::King); i++)
+            moves = add_king_moves(moves, pos, pos.get_psq(side, Piece::King, i));
 
         return moves;
     }

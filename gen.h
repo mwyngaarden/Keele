@@ -10,7 +10,6 @@ namespace Gen {
 
     void init();
 
-    // TODO: document exclusion of pawns
     constexpr int piece_dirs[6][8] = {
         { },
         { -33, -31, -18, -14,  14,  18,  31,  33 },
@@ -20,9 +19,9 @@ namespace Gen {
         { -17, -16, -15,  -1,   1,  15,  16,  17 }
     };
 
-    Move* add_pseudo_moves(Move* moves, const Position& pos);
-    Move* add_legal_moves(Move* moves, const Position& pos);
-    Move* add_evasion_moves(Move* moves, const Position& pos);
+    Move* add_pseudo_moves  (Move* moves, const Position& pos);
+    Move* add_legal_moves   (Move* moves, const Position& pos);
+    Move* add_evasion_moves (Move* moves, const Position& pos);
 
     int move_dir(int orig, int dest);
     Piece::Piece256 move_flag(int orig, int dest);

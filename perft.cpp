@@ -68,21 +68,23 @@ int64_t perft(int depth, bool divide, int64_t& illegal_moves)
     }
 
 #else
-
-    auto pp = perft_pos[5];
+   
+    auto pp = perft_pos[0];
 
     Position pos(pp.fen);
 
     cout << pp.fen << endl;
     cout << pos.get_fen() << endl;
 
-    int64_t have_nodes = perft(pos, depth, divide);
+    int64_t have_nodes = perft(pos, depth, divide, illegal_moves);
     int64_t want_nodes = pp.nodes[depth - 1];
+
+    nodes += have_nodes;
 
     cout << " want nodes: " << want_nodes
          << " have nodes: " << have_nodes
          << " diff nodes: " << have_nodes - want_nodes
-         << endl;
+         << endl << endl;
 
 #endif
 
