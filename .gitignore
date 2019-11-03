@@ -1,5 +1,8 @@
 bin/
 build/
 *.gcda
+.debug_time
+.release_time
 keele
+perf.data
 tags

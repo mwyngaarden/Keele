@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <sstream>
@@ -12,14 +13,10 @@ using namespace std;
 
 void Position::init()
 {
-    for (int i = 0; i < 224; i++)
-        square_[i] = Piece::PieceInvalid256;
+    fill(square_, square_ + 224, Piece::PieceInvalid256);
 
     for (int i = 0; i < 64; i++)
         square(to_sq88(i)) = Piece::PieceNone256;
-
-    check_sq_[0] = SquareNone;
-    check_sq_[1] = SquareNone;
 }
 
 Position::Position(const string& fen)
@@ -28,9 +25,11 @@ Position::Position(const string& fen)
 
     Tokenizer fields(fen, ' ');
 
+    assert(fields.size() >= 2);
+
     const string& pieces        = fields[0];
     const string& side          = fields[1];
-    const string& flags         = fields[2];
+    const string& flags         = fields.size() >= 3 ? fields[2] : "-";
     const string& ep_sq         = fields.size() >= 4 ? fields[3] : "-";
     const string& half_moves    = fields.size() >= 5 ? fields[4] : "0";
     const string& full_moves    = fields.size() >= 6 ? fields[5] : "1";
@@ -163,8 +162,6 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     undo.ep_sq          = ep_sq_;
     undo.half_moves     = half_moves_;
     undo.full_moves     = full_moves_;
-    undo.check_sq[0]    = check_sq_[0];
-    undo.check_sq[1]    = check_sq_[1];
     undo.last_move      = last_move_;
 
     int orig = move.orig();
@@ -218,8 +215,6 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
     ep_sq_          = undo.ep_sq;
     half_moves_     = undo.half_moves;
     full_moves_     = undo.full_moves;
-    check_sq_[0]    = undo.check_sq[0];
-    check_sq_[1]    = undo.check_sq[1];
     last_move_      = undo.last_move;
 
     int orig = move.orig();
@@ -267,11 +262,11 @@ int Position::is_ok(bool incheck) const
     if (!Piece::side_is_ok(side_))
         return __LINE__;
         
-    if (pieces_[Piece::White][Piece::King].size() != 1) return __LINE__;
-    if (pieces_[Piece::Black][Piece::King].size() != 1) return __LINE__;
+    if (piece_list_[Piece::White][Piece::King].size() != 1) return __LINE__;
+    if (piece_list_[Piece::Black][Piece::King].size() != 1) return __LINE__;
 
-    if (!is_sq88(pieces_[Piece::White][Piece::King][0])) return __LINE__;
-    if (!is_sq88(pieces_[Piece::Black][Piece::King][0])) return __LINE__;
+    if (!is_sq88(piece_list_[Piece::White][Piece::King][0])) return __LINE__;
+    if (!is_sq88(piece_list_[Piece::Black][Piece::King][0])) return __LINE__;
     
     size_t type_min[6] = { 0,  0,  0,  0, 0, 1 };
     size_t type_max[6] = { 8, 10, 10, 10, 9, 1 };
@@ -302,7 +297,7 @@ int Position::is_ok(bool incheck) const
                 type_count++;
             }
 
-            if (type_count != pieces_[side][piece].size())
+            if (type_count != piece_list_[side][piece].size())
                 return __LINE__;
 
             if (type_count < type_min[piece]) return __LINE__;
@@ -329,7 +324,6 @@ int Position::is_ok(bool incheck) const
     // int inc = pawn_inc(Piece::flip_side(side_));
     // int flags_ = 0;
     // int ep_sq_ = SquareNone;
-    // int check_sq_[2];
     // Gen::Move last_move_;
     
     return 0;
@@ -348,7 +342,7 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
     int side = p12 % 2;
     int piece = p12 / 2;
 
-    pieces_[side][piece].add(sq);
+    piece_list_[side][piece].add(sq);
 
     square(sq) = piece256;
 }
@@ -369,7 +363,7 @@ void Position::rem_piece(int sq)
     int side = p12 % 2;
     int piece = p12 / 2;
 
-    pieces_[side][piece].rem(sq);
+    piece_list_[side][piece].remove(sq);
 
     square(sq) = Piece::PieceNone256;
 }
@@ -392,7 +386,7 @@ void Position::move_piece(int orig, int dest)
     int side = p12 & 1;
     int piece = p12 >> 1;
 
-    pieces_[side][piece].replace(orig, dest);
+    piece_list_[side][piece].replace(orig, dest);
 
     swap(square(orig), square(dest));
 }
@@ -407,19 +401,26 @@ bool Position::side_attacks(int side, int dest) const
     if (Gen::move_flag(king, dest) & Piece::KingFlag256)
         return true;
 
-    int inc = pawn_inc(side);
+    {
+        Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
+        
+        int inc = pawn_inc(side);
 
-    Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
+        int orig = dest - inc - 1;
 
-    if (square(dest - inc - 1) == pawn256) return true;
-    if (square(dest - inc + 1) == pawn256) return true;
+        if (square(orig) == pawn256) return true;
 
-    for (int orig : pieces_[side][Piece::Knight]) {
+        orig += 2;
+
+        if (square(orig) == pawn256) return true;
+    }
+
+    for (int orig : piece_list(side, Piece::Knight)) {
         if (Gen::move_flag(orig, dest) & Piece::KnightFlag256)
             return true;
     }
 
-    for (int orig : pieces_[side][Piece::Bishop]) {
+    for (int orig : piece_list(side, Piece::Bishop)) {
         if (Gen::move_flag(orig, dest) & Piece::BishopFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -431,7 +432,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
 
-    for (int orig : pieces_[side][Piece::Rook]) {
+    for (int orig : piece_list(side, Piece::Rook)) {
         if (Gen::move_flag(orig, dest) & Piece::RookFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -443,7 +444,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
     
-    for (int orig : pieces_[side][Piece::Queen]) {
+    for (int orig : piece_list(side, Piece::Queen)) {
         if (Gen::move_flag(orig, dest) & Piece::QueenFlags256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;

@@ -123,8 +123,8 @@ namespace Gen {
         if (rel_rank == Rank7) {
             dest = orig + inc - 1;
 
-            if (pos.square(dest) & oflag) {
-                Move m(orig, dest, pos.square(dest));
+            if (pos[dest] & oflag) {
+                Move m(orig, dest, pos[dest]);
 
                 *moves++ = m | Move::PromoKnightFlag;
                 *moves++ = m | Move::PromoBishopFlag;
@@ -134,8 +134,8 @@ namespace Gen {
 
             dest += 2;
 
-            if (pos.square(dest) & oflag) {
-                Move m(orig, dest, pos.square(dest));
+            if (pos[dest] & oflag) {
+                Move m(orig, dest, pos[dest]);
 
                 *moves++ = m | Move::PromoKnightFlag;
                 *moves++ = m | Move::PromoBishopFlag;
@@ -159,18 +159,18 @@ namespace Gen {
         else {
             if (int ep_sq = pos.ep_sq(); rel_rank == Rank5 && ep_sq != SquareNone) {
                 if (abs(sq88_file(orig) - sq88_file(ep_sq)) == 1)
-                    *moves++ = Move(orig, pos.ep_sq(), pos.square(ep_sq - inc)) | Move::EPFlag;
+                    *moves++ = Move(orig, pos.ep_sq(), pos[ep_sq - inc]) | Move::EPFlag;
             }
 
             dest = orig + inc - 1;
             
-            if (pos.square(dest) & oflag)
-                *moves++ = Move(orig, dest, pos.square(dest));
+            if (pos[dest] & oflag)
+                *moves++ = Move(orig, dest, pos[dest]);
 
             dest += 2;
 
-            if (pos.square(dest) & oflag)
-                *moves++ = Move(orig, dest, pos.square(dest));
+            if (pos[dest] & oflag)
+                *moves++ = Move(orig, dest, pos[dest]);
 
             // single push
             
@@ -203,7 +203,7 @@ namespace Gen {
         for (auto dir : piece_dirs[Piece::Knight]) {
             int dest = orig;
 
-            piece = pos.square(dest += dir);
+            piece = pos[dest += dir];
 
             if (piece == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
@@ -226,7 +226,7 @@ namespace Gen {
         for (auto dir : piece_dirs[Piece::Bishop]) {
             int dest = orig;
 
-            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -248,7 +248,7 @@ namespace Gen {
         for (auto dir : piece_dirs[Piece::Rook]) {
             int dest = orig;
 
-            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -270,7 +270,7 @@ namespace Gen {
         for (auto dir : piece_dirs[Piece::Queen]) {
             int dest = orig;
 
-            while ((piece = pos.square(dest += dir)) == Piece::PieceNone256)
+            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -292,7 +292,7 @@ namespace Gen {
         for (auto dir : piece_dirs[Piece::King]) {
             int dest = orig;
 
-            piece = pos.square(dest += dir);
+            piece = pos[dest += dir];
 
             if (piece == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
@@ -302,9 +302,9 @@ namespace Gen {
 
         int king = pos.king_sq();
 
-        bool gen_castle = pos.can_castle() && !pos.side_attacks(Piece::flip_side(pos.side()), king);
+        bool can_castle = pos.can_castle() && !pos.side_attacks(Piece::flip_side(pos.side()), king);
 
-        if (gen_castle) {
+        if (can_castle) {
             if (pos.can_castle_k()) {
                 if (pos.is_empty(orig + 1) && pos.is_empty(orig + 2)) {
                     bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig + 1)

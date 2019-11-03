@@ -101,22 +101,9 @@ namespace Piece {
 
     char to_char(Piece256 piece)
     {
-        switch (piece) {
-        case WhitePawn256:   return 'P';
-        case WhiteKnight256: return 'N';
-        case WhiteBishop256: return 'B';
-        case WhiteRook256:   return 'R';
-        case WhiteQueen256:  return 'Q';
-        case WhiteKing256:   return 'K';
-        case BlackPawn256:   return 'p';
-        case BlackKnight256: return 'n';
-        case BlackBishop256: return 'b';
-        case BlackRook256:   return 'r';
-        case BlackQueen256:  return 'q';
-        case BlackKing256:   return 'k';
-        default:
-            return '!';
-        }
+        assert(piece256_to_piece12[piece] != PieceNone12);
+
+        return piece12_to_char[piece256_to_piece12[piece]];
     }
 }
 

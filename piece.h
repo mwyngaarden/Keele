@@ -2,11 +2,11 @@
 #define PIECE_H
 
 #include <cstdint>
-#include "list.h"
+#include "util.h"
 
 namespace Piece {
 
-    using PieceList = List<int, 10>;
+    using List = Util::List<int, 10>;
     
     void init();
 

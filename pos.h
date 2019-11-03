@@ -9,10 +9,7 @@
 #include "piece.h"
 #include "square.h"
 
-
-// TODO: add constructor taking fen and make class immutable
 class Position {
-
 public:
 
     static constexpr char StartPos[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -44,6 +41,13 @@ public:
     void move_piece(int orig, int dest);
 
     bool side_attacks(int side, int sq) const;
+
+    inline const Piece::Piece256& operator[](int sq) const
+    {
+        assert(sq >= -48 && sq < 176);
+
+        return square_[48 + sq];
+    }
     
     inline const Piece::Piece256& square(int sq) const
     {
@@ -88,27 +92,19 @@ public:
         return Piece::to_piece(square(sq)) == piece;
     }
 
-    inline const Piece::PieceList& piece_list(int side, int piece) const
+    inline const Piece::List& piece_list(int side, int piece) const
     {
         assert(Piece::side_is_ok(side));
         assert(Piece::piece_is_ok(piece));
 
-        return pieces_[side][piece];
-    }
-
-    inline int get_psq(int side, int piece, int index) const
-    {
-        assert(Piece::side_is_ok(side));
-        assert(Piece::piece_is_ok(piece));
-
-        return pieces_[side][piece][index];
+        return piece_list_[side][piece];
     }
 
     inline int king_sq(int side) const
     {
         assert(Piece::side_is_ok(side));
 
-        return pieces_[side][Piece::King][0];
+        return piece_list_[side][Piece::King][0];
     }
 
     inline int king_sq() const
@@ -116,10 +112,10 @@ public:
         return king_sq(side_);
     }
 
-    inline int side()                      const { return side_; }
-    inline int ep_sq()                     const { return ep_sq_; }
-    inline int half_moves()                const { return half_moves_; }
-    inline int full_moves()                const { return full_moves_; }
+    inline int side()                  const { return side_; }
+    inline int ep_sq()                 const { return ep_sq_; }
+    inline int half_moves()            const { return half_moves_; }
+    inline int full_moves()            const { return full_moves_; }
 
     inline bool can_castle_k(int side) const { return (flags_ & (WhiteCastleKFlag << side)) != 0; }
     inline bool can_castle_q(int side) const { return (flags_ & (WhiteCastleQFlag << side)) != 0; }
@@ -132,17 +128,14 @@ public:
     
     std::string dump() const;
 
-    inline void add_check(int sq)
+private:
+    inline Piece::Piece256& operator[](int sq)
     {
-        assert(is_sq88(sq));
-        assert(check_sq_[1] == SquareNone);
+        assert(sq >= -48 && sq < 176);
 
-        check_sq_[1] = check_sq_[0];
-        check_sq_[0] = sq;
+        return square_[48 + sq];
     }
 
-
-private:
     inline Piece::Piece256& square(int sq)
     {
         assert(sq >= -48 && sq < 176);
@@ -150,15 +143,6 @@ private:
         return square_[48 + sq];
     }
     
-    void set_checks();
-    void set_checks(const Gen::Move& last_move);
-    
-    inline void rem_checks()
-    {
-        check_sq_[0] = SquareNone;
-        check_sq_[1] = SquareNone;
-    }
-
     Piece::Piece256 square_[16 * 14];
 
     int side_ = -1;
@@ -167,12 +151,9 @@ private:
     int half_moves_ = 0;
     int full_moves_ = 1;
     
-    int check_sq_[2];
-    
     Gen::Move last_move_ = 0;
 
-    Piece::PieceList pieces_[2][6];
-
+    Piece::List piece_list_[2][6];
 };
 
 #endif

@@ -5,11 +5,15 @@
 #include <cstdint>
 #include "piece.h"
 #include "square.h"
+#include "util.h"
 
 namespace Gen {
-
+        
     class Move {
     public:
+    
+        using List = Util::List<Move, 256>;
+
         static constexpr uint32_t CaptureFlags         = 0xff << 16;
 
         static constexpr uint32_t PromoKnightFlag      = Piece::Knight << 24;
