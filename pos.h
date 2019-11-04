@@ -31,14 +31,14 @@ public:
 
     std::string get_fen() const;
 
-    int is_ok(bool incheck = true) const;
+    int is_ok(bool in_check = true) const;
 
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);
     void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
 
     void add_piece(int sq, Piece::Piece256 p);
     void rem_piece(int sq);
-    void move_piece(int orig, int dest);
+    void mov_piece(int orig, int dest);
 
     bool side_attacks(int side, int sq) const;
 
@@ -86,16 +86,6 @@ public:
 
         return Piece::to_piece(square(sq)) == piece;
     }
-
-    /*
-    inline const Piece::List& piece_list(int side, int piece) const
-    {
-        assert(Piece::side_is_ok(side));
-        assert(Piece::piece_is_ok(piece));
-
-        return piece_list_[2 * piece + side];
-    }
-    */
 
     inline const Piece::List& piece_list(int p12) const
     {

@@ -7,46 +7,48 @@ using namespace std;
 
 namespace Gen {
 
-    static int dir88[256];
-    static int flag88[256];
-
+    static int inc88[256];
+    static int type88[256];
     static int castle88[256];
 
-    static Move* add_pawn_moves     (Move* moves, const Position& pos, int orig);
-    static Move* add_knight_moves   (Move* moves, const Position& pos, int orig);
-    static Move* add_bishop_moves   (Move* moves, const Position& pos, int orig);
-    static Move* add_rook_moves     (Move* moves, const Position& pos, int orig);
-    static Move* add_queen_moves    (Move* moves, const Position& pos, int orig);
-    static Move* add_king_moves     (Move* moves, const Position& pos, int orig);
+    static Move* gen_pawn_moves     (Move* moves, const Position& pos, int orig);
+    static Move* gen_knight_moves   (Move* moves, const Position& pos, int orig);
+    static Move* gen_bishop_moves   (Move* moves, const Position& pos, int orig);
+    static Move* gen_rook_moves     (Move* moves, const Position& pos, int orig);
+    static Move* gen_queen_moves    (Move* moves, const Position& pos, int orig);
+
+    static Move* gen_king_moves     (Move* moves, const Position& pos, int orig);
+    static Move* gen_king_evasions  (Move* moves, const Position& pos, int orig);
+    static Move* gen_king_castles   (Move* moves, const Position& pos, int orig);
     
     void init()
     {
-        flag88[128 + 16 - 1] |= Piece::WhitePawnFlag256;
-        flag88[128 + 16 + 1] |= Piece::WhitePawnFlag256;
-        flag88[128 - 16 - 1] |= Piece::BlackPawnFlag256;
-        flag88[128 - 16 + 1] |= Piece::BlackPawnFlag256;
+        type88[128 + 16 - 1] |= Piece::WhitePawnFlag256;
+        type88[128 + 16 + 1] |= Piece::WhitePawnFlag256;
+        type88[128 - 16 - 1] |= Piece::BlackPawnFlag256;
+        type88[128 - 16 + 1] |= Piece::BlackPawnFlag256;
 
-        for (auto dir : piece_dirs[Piece::Knight]) {
-            dir88[128 + dir] = dir;
-            flag88[128 + dir] |= Piece::KnightFlag256;
+        for (auto inc : piece_incs[Piece::Knight]) {
+            inc88[128 + inc] = inc;
+            type88[128 + inc] |= Piece::KnightFlag256;
         }
 
-        for (auto dir : piece_dirs[Piece::Bishop]) {
+        for (auto inc : piece_incs[Piece::Bishop]) {
             for (int i = 1; i <= 7; i++) {
-                dir88[128 + dir * i] = dir;
-                flag88[128 + dir * i] |= Piece::BishopFlag256;
+                inc88[128 + inc * i] = inc;
+                type88[128 + inc * i] |= Piece::BishopFlag256;
             }
         }
 
-        for (auto dir : piece_dirs[Piece::Rook]) {
+        for (auto inc : piece_incs[Piece::Rook]) {
             for (int i = 1; i <= 7; i++) {
-                dir88[128 + dir * i] = dir;
-                flag88[128 + dir * i] |= Piece::RookFlag256;
+                inc88[128 + inc * i] = inc;
+                type88[128 + inc * i] |= Piece::RookFlag256;
             }
         }
 
-        for (auto dir : piece_dirs[Piece::Queen])
-            flag88[128 + dir] |= Piece::KingFlag256;
+        for (auto inc : piece_incs[Piece::Queen])
+            type88[128 + inc] |= Piece::KingFlag256;
 
         for (int i = 0; i < 256; i++)
             castle88[i] = ~0;
@@ -60,49 +62,47 @@ namespace Gen {
         castle88[H8] = ~Position::BlackCastleKFlag;
     }
 
-    Move* add_pseudo_moves(Move* moves, const Position& pos)
+    Move* gen_pseudo_moves(Move* moves, const Position& pos)
     {
         assert(moves != nullptr);
         assert(pos.is_ok() == 0);
 
         int side = pos.side();
+        int king = pos.king_sq();
+
+        bool in_check = pos.side_attacks(Piece::flip_side(side), king);
 
         for (auto orig : pos.piece_list(Piece::WhitePawn12 + side))
-            moves = add_pawn_moves(moves, pos, orig);
+            moves = gen_pawn_moves(moves, pos, orig);
 
         for (auto orig : pos.piece_list(Piece::WhiteKnight12 + side))
-            moves = add_knight_moves(moves, pos, orig);
+            moves = gen_knight_moves(moves, pos, orig);
 
         for (auto orig : pos.piece_list(Piece::WhiteBishop12 + side))
-            moves = add_bishop_moves(moves, pos, orig);
+            moves = gen_bishop_moves(moves, pos, orig);
 
         for (auto orig : pos.piece_list(Piece::WhiteRook12 + side))
-            moves = add_rook_moves(moves, pos, orig);
+            moves = gen_rook_moves(moves, pos, orig);
 
         for (auto orig : pos.piece_list(Piece::WhiteQueen12 + side))
-            moves = add_queen_moves(moves, pos, orig);
+            moves = gen_queen_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(Piece::WhiteKing12 + side))
-            moves = add_king_moves(moves, pos, orig);
+        for (auto orig : pos.piece_list(Piece::WhiteKing12 + side)) {
+            moves = gen_king_moves(moves, pos, orig);
+
+            if (!in_check && pos.can_castle())
+                moves = gen_king_castles(moves, pos, orig);
+        }
 
         return moves;
     }
 
-    Move* add_evasion_moves(Move* moves, const Position& pos)
+    Move* gen_legal_moves(Move* moves, const Position& pos)
     {
-
-
         return moves;
     }
 
-    Move* add_legal_moves(Move* moves, const Position& pos)
-    {
-
-
-        return moves;
-    }
-
-    Move* add_pawn_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_pawn_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -177,7 +177,7 @@ namespace Gen {
         return moves;
     }
 
-    Move* add_knight_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_knight_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -186,10 +186,10 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto dir : piece_dirs[Piece::Knight]) {
+        for (auto inc : piece_incs[Piece::Knight]) {
             int dest = orig;
 
-            piece = pos[dest += dir];
+            piece = pos[dest += inc];
 
             if (piece == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
@@ -200,7 +200,7 @@ namespace Gen {
         return moves;
     }
 
-    Move* add_bishop_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_bishop_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -209,10 +209,10 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto dir : piece_dirs[Piece::Bishop]) {
+        for (auto inc : piece_incs[Piece::Bishop]) {
             int dest = orig;
 
-            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
+            while ((piece = pos[dest += inc]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -222,7 +222,7 @@ namespace Gen {
         return moves;
     }
 
-    Move* add_rook_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_rook_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -231,10 +231,10 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto dir : piece_dirs[Piece::Rook]) {
+        for (auto inc : piece_incs[Piece::Rook]) {
             int dest = orig;
 
-            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
+            while ((piece = pos[dest += inc]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -244,7 +244,7 @@ namespace Gen {
         return moves;
     }
 
-    Move* add_queen_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_queen_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -253,10 +253,10 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto dir : piece_dirs[Piece::Queen]) {
+        for (auto inc : piece_incs[Piece::Queen]) {
             int dest = orig;
 
-            while ((piece = pos[dest += dir]) == Piece::PieceNone256)
+            while ((piece = pos[dest += inc]) == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
 
             if (piece & ocolor)
@@ -266,7 +266,7 @@ namespace Gen {
         return moves;
     }
 
-    Move* add_king_moves(Move* moves, const Position& pos, int orig)
+    Move* gen_king_moves(Move* moves, const Position& pos, int orig)
     {
         assert(is_sq88(orig));
         assert(pos.is_me(orig));
@@ -275,10 +275,10 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto dir : piece_dirs[Piece::King]) {
+        for (auto inc : piece_incs[Piece::King]) {
             int dest = orig;
 
-            piece = pos[dest += dir];
+            piece = pos[dest += inc];
 
             if (piece == Piece::PieceNone256)
                 *moves++ = Move(orig, dest);
@@ -286,48 +286,59 @@ namespace Gen {
                 *moves++ = Move(orig, dest, piece);
         }
 
-        int king = pos.king_sq();
+        //if (pos.can_castle())
+            //moves = gen_king_castles(moves, pos, orig);
 
-        bool can_castle = pos.can_castle() && !pos.side_attacks(Piece::flip_side(pos.side()), king);
+        return moves;
+    }
 
-        if (can_castle) {
-            if (pos.can_castle_k()) {
-                if (pos.is_empty(orig + 1) && pos.is_empty(orig + 2)) {
-                    bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig + 1)
-                              || pos.side_attacks(Piece::flip_side(pos.side()), orig + 2);
+    Move* gen_king_evasions(Move* moves, const Position& pos, int orig)
+    {
+        return moves;
+    }
 
-                    if (!check)
-                        *moves++ = Move(orig, orig + 2) | Gen::Move::CastleFlag;
-                }
+    Move* gen_king_castles(Move* moves, const Position& pos, int orig)
+    {
+        assert(is_sq88(orig));
+        assert(pos.is_me(orig));
+        assert(pos.is_piece(orig, Piece::King));
+        
+        if (pos.can_castle_k()) {
+            if (pos.is_empty(orig + 1) && pos.is_empty(orig + 2)) {
+                bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig + 1)
+                          || pos.side_attacks(Piece::flip_side(pos.side()), orig + 2);
+
+                if (!check)
+                    *moves++ = Move(orig, orig + 2) | Gen::Move::CastleFlag;
             }
-            if (pos.can_castle_q()) {
-                if (pos.is_empty(orig - 1) && pos.is_empty(orig - 2) && pos.is_empty(orig - 3)) {
-                    bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig - 1)
-                              || pos.side_attacks(Piece::flip_side(pos.side()), orig - 2);
+        }
+        if (pos.can_castle_q()) {
+            if (pos.is_empty(orig - 1) && pos.is_empty(orig - 2) && pos.is_empty(orig - 3)) {
+                bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig - 1)
+                          || pos.side_attacks(Piece::flip_side(pos.side()), orig - 2);
 
-                    if (!check)
-                        *moves++ = Move(orig, orig - 2) | Gen::Move::CastleFlag;
-                }
+                if (!check)
+                    *moves++ = Move(orig, orig - 2) | Gen::Move::CastleFlag;
             }
         }
 
         return moves;
     }
 
-    int move_dir(int orig, int dest)
+    int delta_inc(int orig, int dest)
     {
         assert(is_sq88(orig));
         assert(is_sq88(dest));
 
-        return dir88[128 + dest - orig];
+        return inc88[128 + dest - orig];
     }
 
-    Piece::Piece256 move_flag(int orig, int dest)
+    Piece::Piece256 delta_type(int orig, int dest)
     {
         assert(is_sq88(orig));
         assert(is_sq88(dest));
 
-        return flag88[128 + dest - orig];
+        return type88[128 + dest - orig];
     }
 
     // FIXME: slow

@@ -101,7 +101,7 @@ int64_t perft(Position& pos, int depth, bool divide, int64_t& illegal_moves)
     char pp[6] = { '!', 'n', 'b', 'r', 'q', '!' };
 
     Gen::Move moves[256];
-    Gen::Move* m = Gen::add_pseudo_moves(moves, pos);
+    Gen::Move* m = Gen::gen_pseudo_moves(moves, pos);
     total_moves = m - moves;
 
     //if (depth == 1) return total_moves;
