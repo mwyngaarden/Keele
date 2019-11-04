@@ -14,7 +14,7 @@ COMPILE_FLAGS = -std=c++17 -Wall -Wextra -pedantic
 # Additional release-specific flags
 
 #RCOMPILE_FLAGS = -g -DNDEBUG -O2 -march=native
-RCOMPILE_FLAGS = -DNDEBUG -Ofast -march=native -flto -fno-exceptions
+RCOMPILE_FLAGS = -DNDEBUG -O3 -march=native -flto
 
 # Additional debug-specific flags
 DCOMPILE_FLAGS = -ggdb3

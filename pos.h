@@ -42,18 +42,13 @@ public:
 
     bool side_attacks(int side, int sq) const;
 
-    inline const Piece::Piece256& operator[](int sq) const
-    {
-        assert(sq >= -48 && sq < 176);
-
-        return square_[48 + sq];
-    }
+    inline const Piece::Piece256& operator[](int sq) const { return square(sq); }
     
     inline const Piece::Piece256& square(int sq) const
     {
-        assert(sq >= -48 && sq < 176);
+        assert(sq >= -36 && sq < 156);
 
-        return square_[48 + sq];
+        return square_[36 + sq];
     }
 
     inline bool is_empty(int sq) const
@@ -129,21 +124,16 @@ public:
     std::string dump() const;
 
 private:
-    inline Piece::Piece256& operator[](int sq)
-    {
-        assert(sq >= -48 && sq < 176);
-
-        return square_[48 + sq];
-    }
+    inline Piece::Piece256& operator[](int sq) { return square(sq); }
 
     inline Piece::Piece256& square(int sq)
     {
-        assert(sq >= -48 && sq < 176);
+        assert(sq >= -36 && sq < 156);
 
-        return square_[48 + sq];
+        return square_[36 + sq];
     }
     
-    Piece::Piece256 square_[16 * 14];
+    Piece::Piece256 square_[16 * 12];
 
     int side_ = -1;
     int flags_ = 0;

@@ -12,7 +12,7 @@ namespace Util {
         static constexpr std::size_t npos = -1;
         static constexpr std::size_t capacity() { return N; }
 
-        std::size_t size() const { return size_; }
+        inline std::size_t size() const { return size_; }
 
         inline void add(T value)
         {

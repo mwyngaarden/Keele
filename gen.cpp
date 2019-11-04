@@ -114,16 +114,12 @@ namespace Gen {
 
         int rel_rank = sq88_rank(orig, pos.side());
 
-        int dest;
-
         assert(rel_rank >= Rank2 && rel_rank <= Rank7);
 
         // promotions
 
         if (rel_rank == Rank7) {
-            dest = orig + inc - 1;
-
-            if (pos[dest] & oflag) {
+            if (int dest = orig + inc - 1; pos[dest] & oflag) {
                 Move m(orig, dest, pos[dest]);
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -132,9 +128,7 @@ namespace Gen {
                 *moves++ = m | Move::PromoQueenFlag;
             }
 
-            dest += 2;
-
-            if (pos[dest] & oflag) {
+            if (int dest = orig + inc + 1; pos[dest] & oflag) {
                 Move m(orig, dest, pos[dest]);
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -145,9 +139,7 @@ namespace Gen {
 
             // single push
 
-            dest -= 1;
-
-            if (pos.is_empty(dest)) {
+            if (int dest = orig + inc; pos.is_empty(dest)) {
                 Move m(orig, dest);
 
                 *moves++ = m | Move::PromoKnightFlag;
@@ -162,21 +154,15 @@ namespace Gen {
                     *moves++ = Move(orig, pos.ep_sq(), pos[ep_sq - inc]) | Move::EPFlag;
             }
 
-            dest = orig + inc - 1;
-            
-            if (pos[dest] & oflag)
+            if (int dest = orig + inc - 1; pos[dest] & oflag)
                 *moves++ = Move(orig, dest, pos[dest]);
 
-            dest += 2;
-
-            if (pos[dest] & oflag)
+            if (int dest = orig + inc + 1; pos[dest] & oflag)
                 *moves++ = Move(orig, dest, pos[dest]);
 
             // single push
             
-            dest -= 1;
-
-            if (pos.is_empty(dest)) {
+            if (int dest = orig + inc; pos.is_empty(dest)) {
                 *moves++ = Move(orig, dest);
 
                 // double push

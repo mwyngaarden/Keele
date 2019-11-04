@@ -6,7 +6,8 @@
 
 namespace Piece {
 
-    using List = Util::List<int, 10>;
+    //using List = Util::List<int, 10>;
+    using List = Util::List<int, 16>;
     
     void init();
 

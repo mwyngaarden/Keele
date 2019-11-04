@@ -13,7 +13,7 @@ using namespace std;
 
 void Position::init()
 {
-    fill(square_, square_ + 224, Piece::PieceInvalid256);
+    fill(square_, square_ + 192, Piece::PieceInvalid256);
 
     for (int i = 0; i < 64; i++)
         square(to_sq88(i)) = Piece::PieceNone256;
@@ -241,12 +241,12 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
         add_piece(dest - inc, Piece::to_piece256(side_, Piece::Pawn));
     }
     else {
+        rem_piece(dest);
+
         if (move.is_promo())
             add_piece(orig, Piece::to_piece256(Piece::flip_side(side_), Piece::Pawn));
         else
             add_piece(orig, piece256);
-
-        rem_piece(dest);
         
         if (move.is_capture())
             add_piece(dest, move.capture_piece());
@@ -401,19 +401,12 @@ bool Position::side_attacks(int side, int dest) const
     if (Gen::move_flag(king, dest) & Piece::KingFlag256)
         return true;
 
-    {
-        Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
-        
-        int inc = pawn_inc(side);
+    Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
+    
+    int inc = pawn_inc(side);
 
-        int orig = dest - inc - 1;
-
-        if (square(orig) == pawn256) return true;
-
-        orig += 2;
-
-        if (square(orig) == pawn256) return true;
-    }
+    if (int orig = dest - inc - 1; square(orig) == pawn256) return true;
+    if (int orig = dest - inc + 1; square(orig) == pawn256) return true;
 
     for (int orig : piece_list(side, Piece::Knight)) {
         if (Gen::move_flag(orig, dest) & Piece::KnightFlag256)
