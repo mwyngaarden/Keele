@@ -262,11 +262,8 @@ int Position::is_ok(bool incheck) const
     if (!Piece::side_is_ok(side_))
         return __LINE__;
         
-    if (piece_list_[Piece::White][Piece::King].size() != 1) return __LINE__;
-    if (piece_list_[Piece::Black][Piece::King].size() != 1) return __LINE__;
-
-    if (!is_sq88(piece_list_[Piece::White][Piece::King][0])) return __LINE__;
-    if (!is_sq88(piece_list_[Piece::Black][Piece::King][0])) return __LINE__;
+    if (piece_list_[Piece::WhiteKing12].size() != 1) return __LINE__;
+    if (piece_list_[Piece::BlackKing12].size() != 1) return __LINE__;
     
     size_t type_min[6] = { 0,  0,  0,  0, 0, 1 };
     size_t type_max[6] = { 8, 10, 10, 10, 9, 1 };
@@ -274,12 +271,14 @@ int Position::is_ok(bool incheck) const
     size_t sq_count[128] = { };
 
     for (int side : { Piece::White, Piece::Black }) {
-        size_t all_count = 0;
+        size_t color_count = 0;
 
         for (int piece = Piece::Pawn; piece <= Piece::King; piece++) {
             size_t type_count = 0;
 
-            for (int sq : piece_list(side, piece)) {
+            int p12 = Piece::to_piece12(side, piece);
+
+            for (int sq : piece_list(p12)) {
                 if (!is_sq88(sq))
                     return __LINE__;
 
@@ -293,18 +292,18 @@ int Position::is_ok(bool incheck) const
 
                 sq_count[sq]++;
 
-                all_count++;
+                color_count++;
                 type_count++;
             }
 
-            if (type_count != piece_list_[side][piece].size())
+            if (type_count != piece_list_[p12].size())
                 return __LINE__;
 
             if (type_count < type_min[piece]) return __LINE__;
             if (type_count > type_max[piece]) return __LINE__;
         }
 
-        if (all_count > 16)
+        if (color_count > 16)
             return __LINE__;
     }
 
@@ -339,10 +338,7 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
 
     assert(Piece::piece12_is_ok(p12));
 
-    int side = p12 % 2;
-    int piece = p12 / 2;
-
-    piece_list_[side][piece].add(sq);
+    piece_list_[p12].add(sq);
 
     square(sq) = piece256;
 }
@@ -360,10 +356,7 @@ void Position::rem_piece(int sq)
     
     assert(Piece::piece12_is_ok(p12));
     
-    int side = p12 % 2;
-    int piece = p12 / 2;
-
-    piece_list_[side][piece].remove(sq);
+    piece_list_[p12].remove(sq);
 
     square(sq) = Piece::PieceNone256;
 }
@@ -383,10 +376,7 @@ void Position::move_piece(int orig, int dest)
     
     assert(Piece::piece12_is_ok(p12));
     
-    int side = p12 & 1;
-    int piece = p12 >> 1;
-
-    piece_list_[side][piece].replace(orig, dest);
+    piece_list_[p12].replace(orig, dest);
 
     swap(square(orig), square(dest));
 }
@@ -402,18 +392,18 @@ bool Position::side_attacks(int side, int dest) const
         return true;
 
     Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
-    
+   
     int inc = pawn_inc(side);
 
     if (int orig = dest - inc - 1; square(orig) == pawn256) return true;
     if (int orig = dest - inc + 1; square(orig) == pawn256) return true;
 
-    for (int orig : piece_list(side, Piece::Knight)) {
+    for (int orig : piece_list(Piece::WhiteKnight12 + side)) {
         if (Gen::move_flag(orig, dest) & Piece::KnightFlag256)
             return true;
     }
 
-    for (int orig : piece_list(side, Piece::Bishop)) {
+    for (int orig : piece_list(Piece::WhiteBishop12 + side)) {
         if (Gen::move_flag(orig, dest) & Piece::BishopFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -425,7 +415,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
 
-    for (int orig : piece_list(side, Piece::Rook)) {
+    for (int orig : piece_list(Piece::WhiteRook12 + side)) {
         if (Gen::move_flag(orig, dest) & Piece::RookFlag256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;
@@ -437,7 +427,7 @@ bool Position::side_attacks(int side, int dest) const
         }
     }
     
-    for (int orig : piece_list(side, Piece::Queen)) {
+    for (int orig : piece_list(Piece::WhiteQueen12 + side)) {
         if (Gen::move_flag(orig, dest) & Piece::QueenFlags256) {
             int dir = Gen::move_dir(dest, orig);
             int sq = dest;

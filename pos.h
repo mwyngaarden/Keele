@@ -87,19 +87,28 @@ public:
         return Piece::to_piece(square(sq)) == piece;
     }
 
+    /*
     inline const Piece::List& piece_list(int side, int piece) const
     {
         assert(Piece::side_is_ok(side));
         assert(Piece::piece_is_ok(piece));
 
-        return piece_list_[side][piece];
+        return piece_list_[2 * piece + side];
+    }
+    */
+
+    inline const Piece::List& piece_list(int p12) const
+    {
+        assert(Piece::piece12_is_ok(p12));
+
+        return piece_list_[p12];
     }
 
     inline int king_sq(int side) const
     {
         assert(Piece::side_is_ok(side));
 
-        return piece_list_[side][Piece::King][0];
+        return piece_list_[Piece::WhiteKing12 + side][0];
     }
 
     inline int king_sq() const
@@ -143,7 +152,7 @@ private:
     
     Gen::Move last_move_ = 0;
 
-    Piece::List piece_list_[2][6];
+    Piece::List piece_list_[12];
 };
 
 #endif

@@ -67,22 +67,22 @@ namespace Gen {
 
         int side = pos.side();
 
-        for (auto orig : pos.piece_list(side, Piece::Pawn))
+        for (auto orig : pos.piece_list(Piece::WhitePawn12 + side))
             moves = add_pawn_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(side, Piece::Knight))
+        for (auto orig : pos.piece_list(Piece::WhiteKnight12 + side))
             moves = add_knight_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(side, Piece::Bishop))
+        for (auto orig : pos.piece_list(Piece::WhiteBishop12 + side))
             moves = add_bishop_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(side, Piece::Rook))
+        for (auto orig : pos.piece_list(Piece::WhiteRook12 + side))
             moves = add_rook_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(side, Piece::Queen))
+        for (auto orig : pos.piece_list(Piece::WhiteQueen12 + side))
             moves = add_queen_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(side, Piece::King))
+        for (auto orig : pos.piece_list(Piece::WhiteKing12 + side))
             moves = add_king_moves(moves, pos, orig);
 
         return moves;
