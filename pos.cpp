@@ -208,6 +208,119 @@ string Position::get_fen() const
     return oss.str();
 }
 
+void Position::note_move(Gen::Move& move)
+{
+    int mside = side_;
+    int oside = Piece::flip_side(side_);
+
+    int king = king_sq(oside);
+
+    int orig = move.orig();
+    int dest = move.dest();
+
+    Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
+    Piece::Piece256 type256;
+    Piece::Piece256 piece256;
+
+    int inc;
+    int sq;
+
+    // direct check only
+
+    if (move.is_castle()) {
+        int rook_dest = dest > orig ? orig + 1 : orig - 1;
+
+        if (Gen::delta_type(rook_dest, king) & Piece::RookFlag256) {
+            inc = Gen::delta_inc(rook_dest, king);
+            sq = rook_dest;
+
+            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+            if (sq == king)
+                move.set_dir_check();
+        }
+
+        return;
+    }
+
+    if (move.is_ep()) {
+
+        return;
+    }
+
+    if (move.is_promo()) {
+        int piece = move.promo_piece();
+
+        assert(Piece::piece_is_ok(piece));
+
+        Piece::Piece256 promo256 = Piece::to_piece256(mside, piece);
+        
+        assert(Piece::piece256_is_ok(promo256));
+
+        // direct check?
+
+        if (Gen::delta_type(dest, king) & promo256) {
+            if (!Piece::is_slider(promo256))
+                move.set_dir_check();
+            else {
+                inc = Gen::delta_inc(dest, king);
+                sq = dest;
+
+                do { sq += inc; } while (square(sq) ==  Piece::PieceNone256);
+
+                if (sq == king)
+                    move.set_dir_check();
+            }
+        }
+
+        goto revealed_check;
+    }
+
+direct_check:
+
+    piece256 = square(orig);
+
+    assert(Piece::piece256_is_ok(piece256));
+
+    type256 = Gen::delta_type(dest, king);
+
+    if (piece256 & type256) {
+        if (!Piece::is_slider(piece256))
+            move.set_dir_check();
+        else {
+            inc = Gen::delta_inc(dest, king);
+            sq = dest;
+
+            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+            if (sq == king)
+                move.set_dir_check();
+        }
+    }
+
+revealed_check:
+
+    type256 = Gen::delta_type(orig, king) & Piece::QueenFlags256;
+
+    if (type256) {
+        int inc_orig = Gen::delta_inc(king, orig);
+        int inc_dest = Gen::delta_inc(king, dest);
+
+        if (inc_orig != inc_dest) {
+            sq = orig;
+        
+            do { sq += inc_orig; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+
+            if (piece256 & mflag) {
+                if (type256 & piece256) {
+                    //assert(false);
+                    //move.set_rev_check();
+                }
+            }
+        }
+    }
+}
+
 void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 {
     undo.flags          = flags_;
@@ -443,17 +556,17 @@ bool Position::move_was_legal() const
     int oside = side_;
     int mside = Piece::flip_side(side_);
     
-    int mking = king_sq(mside);
+    int king = king_sq(mside);
 
     int orig = last_move_.orig();
     int dest = last_move_.dest();
         
-    if (dest == mking)
-        return !side_attacks(oside, mking);
+    if (dest == king)
+        return !side_attacks(oside, king);
 
     // TODO: optimize
     //if (Gen::delta_type(mking, orig) & Piece::QueenFlags256)
-        return !side_attacks(oside, mking);
+        return !side_attacks(oside, king);
 
     //return true;
 }
@@ -530,12 +643,12 @@ bool Position::piece_attacks(int orig, int dest) const
     assert(is_sq88(dest));
     assert(!is_empty(orig));
 
-    Piece::Piece256 p256 = square(orig);
+    Piece::Piece256 piece256 = square(orig);
 
-    if (!(Gen::delta_type(orig, dest) & p256))
+    if (!(Gen::delta_type(orig, dest) & piece256))
         return false;
 
-    if (!Piece::is_slider(p256))
+    if (!Piece::is_slider(piece256))
         return true;
 
     int inc = Gen::delta_inc(dest, orig);

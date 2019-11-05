@@ -55,10 +55,20 @@ namespace Util {
             *p = new_value;
         }
 
-        inline const T * begin() const { return data_; } 
-        inline const T * end() const { return data_ + size_; }
+        inline T* begin() { return data_; } 
+        inline T* end() { return data_ + size_; }
 
-        inline T operator[](std::size_t i) const
+        inline const T* begin() const { return data_; } 
+        inline const T* end() const { return data_ + size_; }
+
+        inline T& operator[](std::size_t i)
+        {
+            assert(i < size_);
+
+            return data_[i];
+        }
+        
+        inline const T& operator[](std::size_t i) const
         {
             assert(i < size_);
 

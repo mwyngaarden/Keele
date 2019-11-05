@@ -19,8 +19,8 @@ namespace Gen {
         { -17, -16, -15,  -1,   1,  15,  16,  17 }
     };
 
-    Move* gen_pseudo_moves  (Move* moves, const Position& pos);
-    Move* gen_legal_moves   (Move* moves, const Position& pos);
+    std::size_t gen_pseudo_moves    (Move::List& moves, const Position& pos);
+    std::size_t gen_legal_moves     (Move::List& moves, const Position& pos);
 
     int             delta_inc   (int orig, int dest);
     Piece::Piece256 delta_type  (int orig, int dest);

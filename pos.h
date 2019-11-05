@@ -35,8 +35,11 @@ public:
 
     bool move_was_legal() const;
 
+    void   note_move(Gen::Move& move);
+
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);
     void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
+
 
     void mark_pins();
 

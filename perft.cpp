@@ -14,7 +14,13 @@ struct Perft {
     Perft(string f, vector<int64_t> n) : fen(f), nodes(n) { }
 };
 
-static int64_t perft(Position& pos, int depth, int64_t& illegal_moves);
+static int64_t perft(Position& pos,
+                     int depth,
+                     int64_t& illegal_moves,
+                     int64_t& checks,
+                     int64_t& discovered_checks,
+                     int64_t& double_checks
+        );
 
 int64_t perft(int depth, int64_t& illegal_moves)
 {
@@ -44,8 +50,11 @@ int64_t perft(int depth, int64_t& illegal_moves)
     };
     
     int64_t nodes = 0;
+    int64_t checks = 0;
+    int64_t discovered_checks = 0;
+    int64_t double_checks = 0;
 
-#if 1
+#if 0
 
     for (auto& pp : perft_pos) {
         if (depth > pp.nodes.size())
@@ -56,19 +65,30 @@ int64_t perft(int depth, int64_t& illegal_moves)
         cout << pp.fen << endl;
         cout << pos.get_fen() << endl;
 
-        int64_t have_nodes = perft(pos, depth, illegal_moves);
+        int64_t have_nodes = perft(pos,
+                                   depth,
+                                   illegal_moves,
+                                   checks,
+                                   discovered_checks,
+                                   double_checks
+                );
+
         int64_t want_nodes = pp.nodes[depth - 1];
 
         nodes += have_nodes;
 
-        cout << " want nodes: " << want_nodes
-             << " have nodes: " << have_nodes
-             << " diff nodes: " << have_nodes - want_nodes
-             << endl << endl;
+        cout << "\twant nodes: " << want_nodes               << endl;
+        cout << "\thave nodes: " << have_nodes               << endl;
+        cout << "\tdiff nodes: " << have_nodes - want_nodes  << endl;
+        cout << "\tchecks: "     << checks                   << endl;
+        cout << "\tdsc checks: " << discovered_checks        << endl;
+        cout << "\tdbl checks: " << double_checks            << endl;
+
+        cout << endl;
     }
 
 #else
-   
+
     auto pp = perft_pos[0];
 
     Position pos(pp.fen);
@@ -76,45 +96,70 @@ int64_t perft(int depth, int64_t& illegal_moves)
     cout << pp.fen << endl;
     cout << pos.get_fen() << endl;
 
-    int64_t have_nodes = perft(pos, depth, illegal_moves);
+    int64_t have_nodes = perft(pos,
+                               depth,
+                               illegal_moves,
+                               checks,
+                               discovered_checks,
+                               double_checks
+            );
+
     int64_t want_nodes = pp.nodes[depth - 1];
 
     nodes += have_nodes;
 
-    cout << " want nodes: " << want_nodes
-         << " have nodes: " << have_nodes
-         << " diff nodes: " << have_nodes - want_nodes
-         << endl << endl;
+    cout << "\twant nodes: " << want_nodes               << endl;
+    cout << "\thave nodes: " << have_nodes               << endl;
+    cout << "\tdiff nodes: " << have_nodes - want_nodes  << endl;
+    cout << "\tchecks: "     << checks                   << endl;
+    cout << "\tdsc checks: " << discovered_checks        << endl;
+    cout << "\tdbl checks: " << double_checks            << endl;
+
+    cout << endl;
 
 #endif
 
     return nodes;
 }
 
-int64_t perft(Position& pos, int depth, int64_t& illegal_moves)
+int64_t perft(Position& pos,
+              int depth,
+              int64_t& illegal_moves,
+              int64_t& checks,
+              int64_t& discovered_checks,
+              int64_t& double_checks
+        )
 {
     if (depth == 0)
         return 1;
 
+    Gen::Move::List moves;
+
     int64_t legal_moves = 0;
-    int64_t total_moves = 0;
+    int64_t total_moves = Gen::gen_pseudo_moves(moves, pos);
 
-    Gen::Move moves[256];
-    Gen::Move* m = Gen::gen_pseudo_moves(moves, pos);
-    total_moves = m - moves;
+    for (Gen::Move& m : moves)
+        pos.note_move(m);
 
-    //if (depth == 1) return total_moves;
-
+    // if (depth == 1) return total_moves;
+    
     for (int i = 0; i < total_moves; i++) {
         Gen::Undo undo;
 
         pos.make_move(moves[i], undo);
 
-        //int side = pos.side();
+        int side = pos.side();
 
-        //if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
-        if (pos.move_was_legal()) {
-            int64_t pmoves = perft(pos, depth - 1, illegal_moves);
+        if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
+        //if (pos.move_was_legal()) {
+
+            if (depth == 1) {
+                checks              += moves[i].is_check();
+                discovered_checks   += moves[i].is_rev_check();
+                double_checks       += moves[i].is_double_check();
+            }
+
+            int64_t pmoves = perft(pos, depth - 1, illegal_moves, checks, discovered_checks, double_checks);
 
             legal_moves += pmoves;
         }
