@@ -95,7 +95,59 @@ Position::Position(const string& fen)
     if (full_moves != "-")
         full_moves_ = stoi(full_moves);
 
-    // determine if we're in check and from which squares
+    // set last move
+
+    if (ep_sq_ != SquareNone) {
+        Piece::Piece256 pawn256 = Piece::BlackPawn256 >> side_;
+
+        int inc = pawn_inc(Piece::flip_side(side_));
+        
+        assert(square(ep_sq_ + inc) == pawn256);
+
+        last_move_ = Gen::Move(ep_sq_ - inc, ep_sq_ + inc) | Gen::Move::DoubleFlag;
+    }
+
+    int king = king_sq();
+
+    int oside = Piece::flip_side(side_);
+
+    int checker1 = SquareNone;
+    int checker2 = SquareNone;
+
+    for (int p12 = Piece::WhitePawn12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
+        for (int orig : piece_list(p12)) {
+            if (piece_attacks(orig, king)) {
+                assert(checker2 == SquareNone);
+                
+                checker2 = checker1;
+                checker1 = orig;
+            }
+        }
+    }
+
+    if (checker1 == SquareNone)
+        last_move_ = 0;
+    else if (checker2 == SquareNone) {
+        if (last_move_) {
+            if (Piece::is_pawn(square(checker1)))
+                last_move_ = last_move_ | Gen::Move::DirectCheckFlag;
+            else
+                last_move_ = last_move_ | Gen::Move::RevealCheckFlag;
+        }
+        else
+            last_move_ = Gen::Move(checker1, checker1) | Gen::Move::DirectCheckFlag; 
+    }
+    else {
+        if (Piece::is_slider(square(checker1)))
+            swap(checker1, checker2);
+
+        // TODO: validate logic
+        if (Piece::is_slider(square(checker1)))
+            assert(false);
+
+        last_move_ = Gen::Move(checker2 + Gen::delta_inc(checker2, king), checker1);
+        last_move_ = last_move_ | Gen::Move::DirectCheckFlag | Gen::Move::RevealCheckFlag;
+    }
 
     assert(is_ok() == 0);
 }
@@ -380,6 +432,32 @@ void Position::mov_piece(int orig, int dest)
     swap(square(orig), square(dest));
 }
 
+bool Position::move_was_legal() const
+{
+    assert(is_ok(false) == 0);
+    assert(last_move_ != 0);
+
+    if (last_move_.is_castle())
+        return false;
+
+    int oside = side_;
+    int mside = Piece::flip_side(side_);
+    
+    int mking = king_sq(mside);
+
+    int orig = last_move_.orig();
+    int dest = last_move_.dest();
+        
+    if (dest == mking)
+        return !side_attacks(oside, mking);
+
+    // TODO: optimize
+    //if (Gen::delta_type(mking, orig) & Piece::QueenFlags256)
+        return !side_attacks(oside, mking);
+
+    //return true;
+}
+
 bool Position::side_attacks(int side, int dest) const
 {
     assert(Piece::side_is_ok(side));
@@ -477,7 +555,7 @@ void Position::mark_pins()
     int mside = side_;
     int oside = Piece::flip_side(side_);
 
-    Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
+    //Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
     Piece::Piece256 oflag = Piece::BlackFlag256 >> oside;
 
     for (int orig : piece_list(Piece::WhiteBishop12 + oside)) {

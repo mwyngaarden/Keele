@@ -14,9 +14,9 @@ struct Perft {
     Perft(string f, vector<int64_t> n) : fen(f), nodes(n) { }
 };
 
-static int64_t perft(Position& pos, int depth, bool divide, int64_t& illegal_moves);
+static int64_t perft(Position& pos, int depth, int64_t& illegal_moves);
 
-int64_t perft(int depth, bool divide, int64_t& illegal_moves)
+int64_t perft(int depth, int64_t& illegal_moves)
 {
     vector<Perft> perft_pos {
 
@@ -56,7 +56,7 @@ int64_t perft(int depth, bool divide, int64_t& illegal_moves)
         cout << pp.fen << endl;
         cout << pos.get_fen() << endl;
 
-        int64_t have_nodes = perft(pos, depth, divide, illegal_moves);
+        int64_t have_nodes = perft(pos, depth, illegal_moves);
         int64_t want_nodes = pp.nodes[depth - 1];
 
         nodes += have_nodes;
@@ -76,7 +76,7 @@ int64_t perft(int depth, bool divide, int64_t& illegal_moves)
     cout << pp.fen << endl;
     cout << pos.get_fen() << endl;
 
-    int64_t have_nodes = perft(pos, depth, divide, illegal_moves);
+    int64_t have_nodes = perft(pos, depth, illegal_moves);
     int64_t want_nodes = pp.nodes[depth - 1];
 
     nodes += have_nodes;
@@ -91,14 +91,13 @@ int64_t perft(int depth, bool divide, int64_t& illegal_moves)
     return nodes;
 }
 
-int64_t perft(Position& pos, int depth, bool divide, int64_t& illegal_moves)
+int64_t perft(Position& pos, int depth, int64_t& illegal_moves)
 {
     if (depth == 0)
         return 1;
 
     int64_t legal_moves = 0;
     int64_t total_moves = 0;
-    char pp[6] = { '!', 'n', 'b', 'r', 'q', '!' };
 
     Gen::Move moves[256];
     Gen::Move* m = Gen::gen_pseudo_moves(moves, pos);
@@ -111,20 +110,11 @@ int64_t perft(Position& pos, int depth, bool divide, int64_t& illegal_moves)
 
         pos.make_move(moves[i], undo);
 
-        if (divide) {
-            cout << sq88_to_san(moves[i].orig());
-            cout << sq88_to_san(moves[i].dest());
-            if (moves[i].is_promo()) cout << pp[moves[i].promo_piece()];
-            cout << ' ';
-        }
+        //int side = pos.side();
 
-        int side = pos.side();
-
-        if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
-            int64_t pmoves = perft(pos, depth - 1, false, illegal_moves);
-
-            if (divide)
-                cout << pmoves << endl;
+        //if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
+        if (pos.move_was_legal()) {
+            int64_t pmoves = perft(pos, depth - 1, illegal_moves);
 
             legal_moves += pmoves;
         }

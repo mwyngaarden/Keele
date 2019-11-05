@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
         auto t0 = chrono::system_clock::now();
 
-        int64_t nodes = perft(stoi(argv[2]), false, illegal_moves);
+        int64_t nodes = perft(stoi(argv[2]), illegal_moves);
 
         auto t1 = chrono::system_clock::now();
 

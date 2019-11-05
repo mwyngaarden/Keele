@@ -33,6 +33,8 @@ public:
 
     int is_ok(bool in_check = true) const;
 
+    bool move_was_legal() const;
+
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);
     void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
 
