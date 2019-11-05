@@ -70,8 +70,6 @@ namespace Gen {
         int side = pos.side();
         int king = pos.king_sq();
 
-        bool in_check = pos.side_attacks(Piece::flip_side(side), king);
-
         for (auto orig : pos.piece_list(Piece::WhitePawn12 + side))
             moves = gen_pawn_moves(moves, pos, orig);
 
@@ -87,11 +85,13 @@ namespace Gen {
         for (auto orig : pos.piece_list(Piece::WhiteQueen12 + side))
             moves = gen_queen_moves(moves, pos, orig);
 
-        for (auto orig : pos.piece_list(Piece::WhiteKing12 + side)) {
-            moves = gen_king_moves(moves, pos, orig);
+        moves = gen_king_moves(moves, pos, king);
 
-            if (!in_check && pos.can_castle())
-                moves = gen_king_castles(moves, pos, orig);
+        if (pos.can_castle()) {
+            bool in_check = pos.side_attacks(Piece::flip_side(side), king);
+
+            if (!in_check)
+                moves = gen_king_castles(moves, pos, king);
         }
 
         return moves;
@@ -136,8 +136,6 @@ namespace Gen {
                 *moves++ = m | Move::PromoRookFlag;
                 *moves++ = m | Move::PromoQueenFlag;
             }
-
-            // single push
 
             if (int dest = orig + inc; pos.is_empty(dest)) {
                 Move m(orig, dest);

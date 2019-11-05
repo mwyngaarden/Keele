@@ -36,11 +36,14 @@ public:
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);
     void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
 
+    void mark_pins();
+
     void add_piece(int sq, Piece::Piece256 p);
     void rem_piece(int sq);
     void mov_piece(int orig, int dest);
 
-    bool side_attacks(int side, int sq) const;
+    bool side_attacks(int side, int dest) const;
+    bool piece_attacks(int orig, int dest) const;
 
     inline const Piece::Piece256& operator[](int sq) const { return square(sq); }
     
@@ -123,6 +126,7 @@ public:
     std::string dump() const;
 
 private:
+
     inline Piece::Piece256& operator[](int sq) { return square(sq); }
 
     inline Piece::Piece256& square(int sq)
@@ -143,6 +147,7 @@ private:
     Gen::Move last_move_ = 0;
 
     Piece::List piece_list_[12];
+    Piece::List pinned_;
 };
 
 #endif

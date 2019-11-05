@@ -13,6 +13,8 @@ namespace Util {
         static constexpr std::size_t capacity() { return N; }
 
         inline std::size_t size() const { return size_; }
+        inline bool empty() const { return size_ == 0; }
+        inline void clear() { size_ = 0; }
 
         inline void add(T value)
         {
@@ -53,8 +55,8 @@ namespace Util {
             *p = new_value;
         }
 
-        inline const T* begin() const { return data_; } 
-        inline const T* end() const { return data_ + size_; }
+        inline const T * begin() const { return data_; } 
+        inline const T * end() const { return data_ + size_; }
 
         inline T operator[](std::size_t i) const
         {

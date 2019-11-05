@@ -320,7 +320,6 @@ int Position::is_ok(bool in_check) const
     if (in_check && side_attacks(side_, king_sq(Piece::flip_side(side_))))
         return __LINE__;
 
-    // int inc = pawn_inc(Piece::flip_side(side_));
     // int flags_ = 0;
     // int ep_sq_ = SquareNone;
     // Gen::Move last_move_;
@@ -369,11 +368,11 @@ void Position::mov_piece(int orig, int dest)
     assert(is_empty(dest));
 
     Piece::Piece256 piece256 = square(orig);
-    
+
     assert(Piece::piece256_is_ok(piece256));
 
     int p12 = Piece::to_piece12(piece256);
-    
+
     assert(Piece::piece12_is_ok(p12));
     
     piece_list_[p12].replace(orig, dest);
@@ -392,7 +391,7 @@ bool Position::side_attacks(int side, int dest) const
         return true;
 
     Piece::Piece256 pawn256 = Piece::WhitePawn256 << side;
-  
+
     {
         int inc = pawn_inc(side);
 
@@ -406,41 +405,102 @@ bool Position::side_attacks(int side, int dest) const
     }
 
     for (int orig : piece_list(Piece::WhiteBishop12 + side)) {
-        if (Gen::delta_type(orig, dest) & Piece::BishopFlag256) {
-            int inc = Gen::delta_inc(dest, orig);
-            int sq = dest;
+        if (!(Gen::delta_type(orig, dest) & Piece::BishopFlag256))
+            continue;
 
-            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+        int inc = Gen::delta_inc(dest, orig);
+        int sq = dest;
 
-            if (sq == orig)
-                return true;
-        }
+        do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+        if (sq == orig)
+            return true;
     }
 
     for (int orig : piece_list(Piece::WhiteRook12 + side)) {
-        if (Gen::delta_type(orig, dest) & Piece::RookFlag256) {
-            int inc = Gen::delta_inc(dest, orig);
-            int sq = dest;
+        if (!(Gen::delta_type(orig, dest) & Piece::RookFlag256))
+            continue;
 
-            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+        int inc = Gen::delta_inc(dest, orig);
+        int sq = dest;
 
-            if (sq == orig)
-                return true;
-        }
+        do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+        if (sq == orig)
+            return true;
     }
     
     for (int orig : piece_list(Piece::WhiteQueen12 + side)) {
-        if (Gen::delta_type(orig, dest) & Piece::QueenFlags256) {
-            int inc = Gen::delta_inc(dest, orig);
-            int sq = dest;
+        if (!(Gen::delta_type(orig, dest) & Piece::QueenFlags256))
+            continue;
 
-            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+        int inc = Gen::delta_inc(dest, orig);
+        int sq = dest;
 
-            if (sq == orig)
-                return true;
-        }
+        do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+        if (sq == orig)
+            return true;
     }
 
     return false;
+}
+
+bool Position::piece_attacks(int orig, int dest) const
+{
+    assert(is_sq88(orig));
+    assert(is_sq88(dest));
+    assert(!is_empty(orig));
+
+    Piece::Piece256 p256 = square(orig);
+
+    if (!(Gen::delta_type(orig, dest) & p256))
+        return false;
+
+    if (!Piece::is_slider(p256))
+        return true;
+
+    int inc = Gen::delta_inc(dest, orig);
+    int sq = dest;
+
+    do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+    return sq == orig;
+}
+
+void Position::mark_pins()
+{
+    pinned_.clear();
+
+    int king = king_sq();
+
+    int mside = side_;
+    int oside = Piece::flip_side(side_);
+
+    Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
+    Piece::Piece256 oflag = Piece::BlackFlag256 >> oside;
+
+    for (int orig : piece_list(Piece::WhiteBishop12 + oside)) {
+        if (!(Gen::delta_type(orig, king) & Piece::BishopFlag256))
+            continue;
+
+        int inc = Gen::delta_inc(king, orig);
+        int sq = king;
+
+        do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+        assert(is_sq88(sq));
+
+        if (square(sq) & oflag)
+            continue;
+
+        do { orig -= inc; } while (square(orig) == Piece::PieceNone256);
+
+        assert(is_sq88(orig));
+
+        if (orig == sq) {
+            // pinned
+        }
+    }
 }
 
