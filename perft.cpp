@@ -19,7 +19,10 @@ static int64_t perft(Position& pos,
                      int64_t& illegal_moves,
                      int64_t& checks,
                      int64_t& discovered_checks,
-                     int64_t& double_checks
+                     int64_t& double_checks,
+                     int64_t& ep,
+                     int64_t& mates,
+                     int64_t& castles
         );
 
 int64_t perft(int depth, int64_t& illegal_moves)
@@ -53,6 +56,9 @@ int64_t perft(int depth, int64_t& illegal_moves)
     int64_t checks = 0;
     int64_t discovered_checks = 0;
     int64_t double_checks = 0;
+    int64_t ep = 0;
+    int64_t mates = 0;
+    int64_t castles = 0;
 
 #if 0
 
@@ -63,6 +69,9 @@ int64_t perft(int depth, int64_t& illegal_moves)
         checks = 0;
         discovered_checks = 0;
         double_checks = 0;
+        ep = 0;
+        mates = 0;
+        castles = 0;
 
         Position pos(pp.fen);
 
@@ -74,7 +83,10 @@ int64_t perft(int depth, int64_t& illegal_moves)
                                    illegal_moves,
                                    checks,
                                    discovered_checks,
-                                   double_checks
+                                   double_checks,
+                                   ep,
+                                   mates,
+                                   castles
                 );
 
         int64_t want_nodes = pp.nodes[depth - 1];
@@ -87,13 +99,16 @@ int64_t perft(int depth, int64_t& illegal_moves)
         cout << "\tchecks: "     << checks                   << endl;
         cout << "\tdsc checks: " << discovered_checks        << endl;
         cout << "\tdbl checks: " << double_checks            << endl;
+        cout << "\tep: "         << ep                       << endl;
+        cout << "\tmates: "      << mates                    << endl;
+        cout << "\tcastles: "    << castles                  << endl;
 
         cout << endl;
     }
 
 #else
 
-    auto pp = perft_pos[0];
+    auto pp = perft_pos[2];
 
     Position pos(pp.fen);
 
@@ -105,7 +120,10 @@ int64_t perft(int depth, int64_t& illegal_moves)
                                illegal_moves,
                                checks,
                                discovered_checks,
-                               double_checks
+                               double_checks,
+                               ep,
+                               mates,
+                               castles
             );
 
     int64_t want_nodes = pp.nodes[depth - 1];
@@ -118,6 +136,9 @@ int64_t perft(int depth, int64_t& illegal_moves)
     cout << "\tchecks: "     << checks                   << endl;
     cout << "\tdsc checks: " << discovered_checks        << endl;
     cout << "\tdbl checks: " << double_checks            << endl;
+    cout << "\tep: "         << ep                       << endl;
+    cout << "\tmates: "      << mates                    << endl;
+    cout << "\tcastles: "    << castles                  << endl;
 
     cout << endl;
 
@@ -131,13 +152,26 @@ int64_t perft(Position& pos,
               int64_t& illegal_moves,
               int64_t& checks,
               int64_t& discovered_checks,
-              int64_t& double_checks
+              int64_t& double_checks,
+              int64_t& ep,
+              int64_t& mates,
+              int64_t& castles
         )
 {
     if (depth == 0) {
         checks              += pos.last_move().is_check();
-        discovered_checks   += pos.last_move().is_rev_check();
-        double_checks       += pos.last_move().is_double_check();
+        //discovered_checks   += pos.last_move().is_rev_check();
+        //double_checks       += pos.last_move().is_double_check();
+
+
+        if (pos.last_move().is_double_check())
+            double_checks++;
+
+        else if (pos.last_move().is_rev_check())
+            discovered_checks++;
+
+        ep                  += pos.last_move().is_ep();
+        castles             += pos.last_move().is_castle();
 
         return 1;
     }
@@ -162,7 +196,7 @@ int64_t perft(Position& pos,
         if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
         //if (pos.move_was_legal()) {
 
-            int64_t pmoves = perft(pos, depth - 1, illegal_moves, checks, discovered_checks, double_checks);
+            int64_t pmoves = perft(pos, depth - 1, illegal_moves, checks, discovered_checks, double_checks, ep, mates, castles);
 
             legal_moves += pmoves;
         }
@@ -171,6 +205,8 @@ int64_t perft(Position& pos,
 
         pos.unmake_move(m, undo);
     }
+
+    mates += depth == 1 && !legal_moves;
 
     return legal_moves;
 }

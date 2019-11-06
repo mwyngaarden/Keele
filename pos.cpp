@@ -2,6 +2,7 @@
 #include <array>
 #include <iostream>
 #include <sstream>
+#include <utility>
 #include <cassert>
 #include <cstring>
 #include "gen.h"
@@ -300,30 +301,33 @@ direct_check:
 
 revealed_check:
 
-    if (move == Gen::Move(344916) && last_move_ == Gen::Move(8208)) {
-        //int xyz = 123;
-    }
-
     type256 = Gen::delta_type(orig, king) & Piece::QueenFlags256;
 
-    if (type256) {
-        int inc_orig = Gen::delta_inc(king, orig);
-        int inc_dest = Gen::delta_inc(king, dest);
+    if (!type256)
+        return;
 
-        if (inc_orig != inc_dest) {
-            sq = king;
-        
-            do { sq += inc_orig; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+    int inc_orig = Gen::delta_inc(king, orig);
+    int inc_dest = Gen::delta_inc(king, dest);
 
-            if (piece256 & mflag) {
-                if (type256 & piece256) {
-                    //assert(false);
+    if (inc_orig == inc_dest)
+        return;
 
-                    //throw;
+    sq = king;
 
-                    move.set_rev_check();
-                }
-            }
+    do { sq += inc_orig; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+
+    if (sq != orig)
+        return;
+
+    do { sq += inc_orig; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+
+    if (piece256 & mflag) {
+        if (type256 & piece256) {
+            //assert(false);
+
+            //throw;
+
+            move.set_rev_check();
         }
     }
 }
