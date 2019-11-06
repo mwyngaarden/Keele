@@ -105,5 +105,12 @@ namespace Piece {
 
         return piece12_to_char[piece256_to_piece12[piece]];
     }
+
+    char to_char(int piece)
+    {
+        assert(piece_is_ok(piece));
+
+        return piece12_to_char[piece << 1];
+    }
 }
 

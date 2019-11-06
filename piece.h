@@ -94,6 +94,7 @@ namespace Piece {
     
     constexpr int flip_side         (int side) { return side ^ 1; }
 
+    char to_char                    (int piece);
     char to_char                    (Piece256 piece);
     int to_piece                    (Piece256 piece);
     int to_piece12                  (Piece256 piece);

@@ -209,6 +209,8 @@ string Position::get_fen() const
     return oss.str();
 }
 
+// TODO: can we remove the piece temporarily?
+
 void Position::note_move(Gen::Move& move)
 {
     int mside = side_;
@@ -220,9 +222,12 @@ void Position::note_move(Gen::Move& move)
     int dest = move.dest();
 
     Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
+    Piece::Piece256 mpawn = Piece::WhitePawn256 << mside;
+
     Piece::Piece256 type256;
     Piece::Piece256 piece256;
 
+    int cap;
     int inc;
     int sq;
 
@@ -245,6 +250,62 @@ void Position::note_move(Gen::Move& move)
     }
 
     if (move.is_ep()) {
+
+        // direct check?
+
+        type256 = Gen::delta_type(dest, king);
+
+        if (type256 & mpawn) {
+            move.set_dir_check();
+
+            // revealed checks impossible if direct check on same diagonal as ep capture
+
+            if (dest - orig == king - dest)
+                return;
+        }
+
+        int checkers = 0;
+
+        // revealed check on line of moving pawn
+
+        type256 = Gen::delta_type(king, orig);
+
+        if (type256 & Piece::QueenFlags256) {
+            inc = Gen::delta_inc(king, orig);
+            sq = king;
+
+            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+            if (sq == orig) {
+                do { sq += inc; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+
+                if ((piece256 & mflag) && (piece256 & type256))
+                    checkers++;
+            }
+        }
+
+        // revealed check on line of captured pawn?
+
+        cap = dest - pawn_inc(mside);
+        
+        type256 = Gen::delta_type(king, cap);
+
+        if (type256 & Piece::QueenFlags256) {
+            inc = Gen::delta_inc(king, cap);
+            sq = king;
+
+            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+
+            if (sq == cap) {
+                do { sq += inc; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+
+                if ((piece256 & mflag) && (piece256 & type256))
+                    checkers++;
+            }
+        }
+
+        if (checkers > 0) move.set_rev_check();
+        if (checkers > 1) move.set_ep_double_special();
 
         return;
     }
@@ -706,3 +767,37 @@ void Position::mark_pins()
     }
 }
 
+string Position::dump() const
+{
+    ostringstream oss;
+
+    oss << ' ' << get_fen() << endl << endl 
+        << "    +---+---+---+---+---+---+---+---+" << endl;
+   
+    for (int rank = 7; rank >= 0; rank--) {
+        oss << ' ' << (rank + 1) << "  |";
+
+        for (int file = 0; file <= 7; file++) { 
+            Piece::Piece256 piece256 = square(to_sq88(file, rank));
+
+
+            if (Piece::is_white(piece256))
+                oss << '-' << Piece::to_char(Piece::to_piece(piece256)) << '-';
+            else if (Piece::is_black(piece256))
+                oss << '<' << Piece::to_char(Piece::to_piece(piece256)) << '>';
+            else  {
+                int clr = ~(file ^ rank) & 1;
+
+                oss << ' ' << (clr ? '.' : ' ') << ' ';
+            }
+
+            oss << '|';
+        }
+
+        oss << endl << "    +---+---+---+---+---+---+---+---+" << endl;
+    }
+
+    oss << "      a   b   c   d   e   f   g   h  " << endl;
+
+    return oss.str();
+}
