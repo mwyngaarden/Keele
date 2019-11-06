@@ -130,6 +130,8 @@ public:
     
     std::string dump() const;
 
+    inline const Gen::Move& last_move() const { return last_move_; }
+
 private:
 
     inline Piece::Piece256& operator[](int sq) { return square(sq); }

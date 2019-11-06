@@ -59,6 +59,10 @@ int64_t perft(int depth, int64_t& illegal_moves)
     for (auto& pp : perft_pos) {
         if (depth > pp.nodes.size())
             continue;
+    
+        checks = 0;
+        discovered_checks = 0;
+        double_checks = 0;
 
         Position pos(pp.fen);
 
@@ -130,8 +134,13 @@ int64_t perft(Position& pos,
               int64_t& double_checks
         )
 {
-    if (depth == 0)
+    if (depth == 0) {
+        checks              += pos.last_move().is_check();
+        discovered_checks   += pos.last_move().is_rev_check();
+        double_checks       += pos.last_move().is_double_check();
+
         return 1;
+    }
 
     Gen::Move::List moves;
 
@@ -142,22 +151,16 @@ int64_t perft(Position& pos,
         pos.note_move(m);
 
     // if (depth == 1) return total_moves;
-    
-    for (int i = 0; i < total_moves; i++) {
+
+    for (const Gen::Move& m : moves) {
         Gen::Undo undo;
 
-        pos.make_move(moves[i], undo);
+        pos.make_move(m, undo);
 
         int side = pos.side();
 
         if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
         //if (pos.move_was_legal()) {
-
-            if (depth == 1) {
-                checks              += moves[i].is_check();
-                discovered_checks   += moves[i].is_rev_check();
-                double_checks       += moves[i].is_double_check();
-            }
 
             int64_t pmoves = perft(pos, depth - 1, illegal_moves, checks, discovered_checks, double_checks);
 
@@ -166,7 +169,7 @@ int64_t perft(Position& pos,
         else
             ++illegal_moves;
 
-        pos.unmake_move(moves[i], undo);
+        pos.unmake_move(m, undo);
     }
 
     return legal_moves;

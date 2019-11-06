@@ -300,6 +300,10 @@ direct_check:
 
 revealed_check:
 
+    if (move == Gen::Move(344916) && last_move_ == Gen::Move(8208)) {
+        //int xyz = 123;
+    }
+
     type256 = Gen::delta_type(orig, king) & Piece::QueenFlags256;
 
     if (type256) {
@@ -307,14 +311,17 @@ revealed_check:
         int inc_dest = Gen::delta_inc(king, dest);
 
         if (inc_orig != inc_dest) {
-            sq = orig;
+            sq = king;
         
             do { sq += inc_orig; } while ((piece256 = square(sq)) == Piece::PieceNone256);
 
             if (piece256 & mflag) {
                 if (type256 & piece256) {
                     //assert(false);
-                    //move.set_rev_check();
+
+                    //throw;
+
+                    move.set_rev_check();
                 }
             }
         }
