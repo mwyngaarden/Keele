@@ -115,6 +115,8 @@ Position::Position(const string& fen)
     int checker1 = SquareNone;
     int checker2 = SquareNone;
 
+    // TODO: use PieceList12
+
     for (int p12 = Piece::WhitePawn12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
         for (int orig : piece_list(p12)) {
             if (piece_attacks(orig, king)) {
@@ -153,7 +155,7 @@ Position::Position(const string& fen)
     assert(is_ok() == 0);
 }
 
-string Position::get_fen() const
+string Position::to_fen() const
 {
     ostringstream oss;
     
@@ -260,7 +262,7 @@ void Position::note_move(Gen::Move& move)
 
             // revealed checks impossible if direct check on same diagonal as ep capture
 
-            if (dest - orig == king - dest)
+            if ((dest - orig) == (king - dest))
                 return;
         }
 
@@ -304,8 +306,8 @@ void Position::note_move(Gen::Move& move)
             }
         }
 
-        if (checkers > 0) move.set_rev_check();
-        if (checkers > 1) move.set_ep_double_special();
+        if (checkers == 1) move.set_rev_check();
+        if (checkers == 2) move.set_rev_rev_check();
 
         return;
     }
@@ -443,7 +445,7 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 
     last_move_ = move;
 
-    assert(is_ok(false) == 0);
+    //assert(is_ok(false) == 0);
 }
 
 void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
@@ -491,7 +493,7 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
 
     side_ = Piece::flip_side(side_);
 
-    assert(is_ok() == 0);
+    //assert(is_ok() == 0);
 }
 
 int Position::is_ok(bool in_check) const
@@ -619,7 +621,7 @@ void Position::mov_piece(int orig, int dest)
 
 bool Position::move_was_legal() const
 {
-    assert(is_ok(false) == 0);
+    //assert(is_ok(false) == 0);
     assert(last_move_ != 0);
 
     if (last_move_.is_castle())
@@ -743,6 +745,8 @@ void Position::mark_pins()
     //Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
     Piece::Piece256 oflag = Piece::BlackFlag256 >> oside;
 
+    // FIXME: exclude king
+
     for (int orig : piece_list(Piece::WhiteBishop12 + oside)) {
         if (!(Gen::delta_type(orig, king) & Piece::BishopFlag256))
             continue;
@@ -771,7 +775,7 @@ string Position::dump() const
 {
     ostringstream oss;
 
-    oss << ' ' << get_fen() << endl << endl 
+    oss << ' ' << to_fen() << endl << endl 
         << "    +---+---+---+---+---+---+---+---+" << endl;
    
     for (int rank = 7; rank >= 0; rank--) {

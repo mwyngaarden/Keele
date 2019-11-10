@@ -29,7 +29,7 @@ public:
 
     void init();
 
-    std::string get_fen() const;
+    std::string to_fen() const;
 
     int is_ok(bool in_check = true) const;
 

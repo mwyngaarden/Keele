@@ -1,6 +1,5 @@
 #include <array>
 #include <bitset>
-#include <chrono>
 #include <iostream>
 #include <vector>
 #include <cstdlib>
@@ -22,18 +21,13 @@ int main(int argc, char *argv[])
     int pos = stoi(argv[2]); 
     
     int64_t illegal_moves = 0;
+    int64_t ns = 0;
 
-    auto t0 = chrono::system_clock::now();
-
-    int64_t nodes = perft(depth, pos, illegal_moves);
-
-    auto t1 = chrono::system_clock::now();
-
-    auto ms = chrono::duration_cast<chrono::milliseconds>(t1 - t0);
+    int64_t nodes = perft(depth, pos, illegal_moves, ns);
 
     cout << "nodes: " << nodes << endl;
-    cout << "milliseconds: " << ms.count() << endl;
-    cout << "knps: " << double(nodes) / double(ms.count()) << endl;
+    cout << "milliseconds: " << double(ns) / 1000.0 << endl;
+    cout << "knps: " << 1000.0 * double(nodes) / double(ns) << endl;
     cout << "illegal moves: " << illegal_moves << " (" << 100.0 * illegal_moves / nodes << " %)" << endl;
 
 	return EXIT_SUCCESS;

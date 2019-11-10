@@ -40,6 +40,11 @@ namespace Piece {
         PieceNone12
     };
 
+    constexpr int PieceList12[2][6] = {
+        { WhitePawn12, WhiteKnight12, WhiteBishop12, WhiteRook12, WhiteQueen12, WhiteKing12 },
+        { BlackPawn12, BlackKnight12, BlackBishop12, BlackRook12, BlackQueen12, BlackKing12 }
+    };
+
     typedef uint8_t Piece256;
 
     constexpr Piece256 PieceNone256     = 0;

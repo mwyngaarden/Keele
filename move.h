@@ -27,21 +27,16 @@ namespace Gen {
         static constexpr uint32_t DoubleFlag           = 1 << 25;
         static constexpr uint32_t CastleFlag           = 1 << 26;
         static constexpr uint32_t EPFlag               = 1 << 27;
-        static constexpr uint32_t RevealCheckFlag      = 1 << 28;
-        static constexpr uint32_t DirectCheckFlag      = 1 << 29;
-        static constexpr uint32_t EPDoubleSpecial      = 1 << 30;
+        static constexpr uint32_t DirectCheckFlag      = 1 << 28;
+        static constexpr uint32_t RevealCheckFlag      = 1 << 29;
+        static constexpr uint32_t EPRevRevCheckFlag    = 1 << 30;
         
-        static constexpr uint32_t CheckFlags           = DirectCheckFlag | RevealCheckFlag;
+        static constexpr uint32_t CheckFlags           = DirectCheckFlag | RevealCheckFlag | EPRevRevCheckFlag;
 
-        static constexpr uint32_t EPSpecialFlags       = EPFlag
-                                                       | RevealCheckFlag
-                                                       | DirectCheckFlag
-                                                       | EPDoubleSpecial; 
-        
-        inline bool is_ep_dir_check()      const { return (data_ & EPSpecialFlags) == (EPFlag | DirectCheckFlag); }
-        inline bool is_ep_rev_check()      const { return (data_ & EPSpecialFlags) == (EPFlag | RevealCheckFlag); }
-        inline bool is_ep_double_simple()  const { return (data_ & EPSpecialFlags) == (EPFlag | DirectCheckFlag | RevealCheckFlag); }
-        inline bool is_ep_double_special() const { return data_ & EPDoubleSpecial; }
+        inline bool is_dir_check()      const { return (data_ & CheckFlags) == DirectCheckFlag; }
+        inline bool is_rev_check()      const { return (data_ & CheckFlags) == RevealCheckFlag; }
+        inline bool is_dir_rev_check()  const { return (data_ & CheckFlags) == (DirectCheckFlag | RevealCheckFlag); }
+        inline bool is_rev_rev_check()  const { return (data_ & CheckFlags) == (DirectCheckFlag | EPRevRevCheckFlag); }
         
         inline Move() { }
         inline Move(uint32_t data) : data_(data) { }
@@ -62,7 +57,7 @@ namespace Gen {
 
         inline void set_dir_check()           { data_ |= DirectCheckFlag; }
         inline void set_rev_check()           { data_ |= RevealCheckFlag; }
-        inline void set_ep_double_special()   { data_ |= EPDoubleSpecial; }
+        inline void set_rev_rev_check()       { data_ |= EPRevRevCheckFlag; }
 
         inline bool is_capture()        const { return data_ & CaptureFlags; }
         inline bool is_promo()          const { return data_ & PromoFlags; }
@@ -72,11 +67,7 @@ namespace Gen {
         inline bool is_ep_or_castle()   const { return data_ & (EPFlag | CastleFlag); }
         inline bool is_double()         const { return data_ & DoubleFlag; }
 
-        inline bool is_rev_check()      const { return data_ & RevealCheckFlag; }
-        inline bool is_dir_check()      const { return data_ & DirectCheckFlag; }
-        inline bool is_double_check()   const { return (data_ & CheckFlags) == CheckFlags; }
         inline bool is_check()          const { return data_ & CheckFlags; }
-
         inline bool is_special()        const { return data_ & (EPFlag | PromoFlags | CastleFlag); }
 
     private:

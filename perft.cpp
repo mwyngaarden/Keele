@@ -1,4 +1,5 @@
 #include <array>
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,9 +13,18 @@ using namespace std;
 struct Perft {
     const char* fen;
 
-    array<int64_t, 6> nodes;
+    array<int64_t, 9> nodes;
 
-    Perft(const char* f, int64_t n0, int64_t n1, int64_t n2, int64_t n3, int64_t n4, int64_t n5)
+    Perft(const char* f,
+          int64_t n0 = 0,
+          int64_t n1 = 0,
+          int64_t n2 = 0,
+          int64_t n3 = 0,
+          int64_t n4 = 0,
+          int64_t n5 = 0,
+          int64_t n6 = 0,
+          int64_t n7 = 0,
+          int64_t n8 = 0)
         : fen(f)
     {
         nodes[0] = n0;
@@ -23,27 +33,31 @@ struct Perft {
         nodes[3] = n3;
         nodes[4] = n4;
         nodes[5] = n5;
+        nodes[6] = n6;
+        nodes[7] = n7;
+        nodes[8] = n8;
     }
 };
             
-            
+int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
+#if 1
 
-int64_t perft(int depth, int pos, int64_t& illegal_moves);
-
-/*
-static std::vector<Perft> OldFens {
-    Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", { 20, 400, 8902, 197281, 4865609, 119060324, 3195901860 }),
-    Perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", { 48, 2039, 97862, 4085603, 193690690, 8031647685 }),
-    Perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", { 14, 191, 2812, 43238, 674624, 11030083, 178633661, 3009794393 }),
-    Perft("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", { 6, 264, 9467, 422333, 15833292, 706045033 }),
-    Perft("r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1", { 6, 264, 9467, 422333, 15833292, 706045033 }),
-    Perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", { 44, 1486, 62379, 2103487, 89941194 }),
-    Perft("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", { 46, 2079, 89890, 3894594, 164075551, 6923051137, 287188994746, 11923589843526, 490154852788714 })
+std::vector<Perft> OldFens {
+    Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860),
+    Perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 48, 2039, 97862, 4085603, 193690690, 8031647685),
+    Perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 14, 191, 2812, 43238, 674624, 11030083, 178633661, 3009794393),
+    Perft("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 6, 264, 9467, 422333, 15833292, 706045033),
+    Perft("r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1", 6, 264, 9467, 422333, 15833292, 706045033),
+    Perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 44, 1486, 62379, 2103487, 89941194),
+    Perft("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 46, 2079, 89890, 3894594, 164075551, 6923051137, 287188994746, 11923589843526, 490154852788714)
 };
-*/
 
-static std::vector<Perft> NewFens {
+#endif
+
+#if 0
+
+std::vector<Perft> NewFens {
     Perft("1B1N3k/2r5/5P1P/1bn5/3K2p1/6P1/8/4R3 w - -", 26, 656, 14837, 360132, 8255184, 194661240),
     Perft("1B1N3k/4r3/5b1P/2n1P3/3K2p1/6P1/4b3/4R3 b - -", 31, 587, 16700, 340453, 9544670, 201645201),
     Perft("1B1N4/1r5k/1bB5/Pp1R3p/8/8/2K5/8 w - -", 36, 738, 25979, 529242, 18418391, 375624341),
@@ -443,7 +457,8 @@ static std::vector<Perft> NewFens {
     Perft("1n1q1r1k/1b1pP2p/rp4p1/P5BP/2Qp1p2/5R2/P3PPP1/R2K1BN1 b - -", 27, 1488, 39746, 2032970, 57834957, 2816924949),
     Perft("1n1q1r1k/1b1pnQ1p/rp1P2p1/P1p3BP/3N1p2/5R2/P3PPP1/R2K1BN1 w - -", 50, 1233, 60605, 1586242, 76234277, 2113189608),
     Perft("1n1q4/p1B4k/P4P2/Bp1p2p1/3P3p/7P/5NR1/4Q1K1 w - -", 40, 707, 28351, 559043, 22135532, 457601396),
-    Perft("1n1qBbr1/1b2p1p1/2NNk3/2ppP2p/P2P1pn1/Br4P1/2P2P2/2RQK1R1 b - -", 40, 1498, 51887, 1956603, 65903645, 2509133961),
+    Perft("1n1qBbr1/1b2p1p1/2NNk3/2ppP2p/P2P1pn1/Br4P1/2P2P2/2RQK1R1 b - -", 40, 1498, 51887, 1956603, 65903645, 2509133961)
+    /*
     Perft("1n1qBbr1/Nb2p1pp/3Nk3/2ppP3/P2P1pn1/1r4P1/1BP2P2/2RQK1R1 w - -", 39, 1415, 52780, 1849913, 69490484, 2375280195),
     Perft("1n1qBbr1/Nb2p1pp/4k3/2ppP3/P1NP1pn1/1r4P1/1BP2P2/2RQK1R1 b - -", 40, 1403, 50058, 1782699, 61905801, 2237748969),
     Perft("1n1qNbr1/1b1kpBp1/2N2n2/2ppP2p/P2P1p2/B1r3P1/5P2/2RQK1R1 b - -", 35, 1420, 44167, 1797192, 56414128, 2310823037),
@@ -6795,14 +6810,19 @@ static std::vector<Perft> NewFens {
     Perft("rr6/1kb2Q2/p2B2P1/Ppp2p2/3R4/RP5b/3K4/8 w - -", 43, 709, 28941, 568192, 22530882, 484671979),
     Perft("rr6/p1p2kp1/n3b2p/P3PNb1/4P3/1PP2PP1/2K1N1q1/1R6 b - -", 44, 932, 38469, 826913, 34875817, 755037319),
     Perft("rr6/p1p2kpp/n3b3/P3PNb1/4P3/2P2PP1/1P4q1/R3K1N1 w - -", 21, 980, 17399, 813221, 14308845, 662255262)
+    */
 };
+
+#endif
 
 static int64_t perft(Position& pos,
                      int depth,
                      int64_t& illegal_moves,
-                     int64_t& checks,
-                     int64_t& discovered_checks,
-                     int64_t& double_checks,
+                     int64_t& total_checks,
+                     int64_t& dir_checks,
+                     int64_t& rev_checks,
+                     int64_t& dir_rev_checks,
+                     int64_t& rev_rev_checks,
                      int64_t& ep,
                      int64_t& mates,
                      int64_t& castles,
@@ -6810,12 +6830,14 @@ static int64_t perft(Position& pos,
                      int64_t& promos
         );
 
-int64_t perft(int depth, int pos, int64_t& illegal_moves)
+int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 {
     int64_t nodes = 0;
-    int64_t checks = 0;
-    int64_t discovered_checks = 0;
-    int64_t double_checks = 0;
+    int64_t total_checks = 0;
+    int64_t dir_checks = 0;
+    int64_t rev_checks = 0;
+    int64_t dir_rev_checks = 0;
+    int64_t rev_rev_checks = 0;
     int64_t ep = 0;
     int64_t mates = 0;
     int64_t castles = 0;
@@ -6824,18 +6846,20 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves)
 
     int64_t nodes_diff = 0;
 
-    for (int i = 0; i < NewFens.size(); i++) {
+    for (int i = 0; i < OldFens.size(); i++) {
         if (pos != -1 && i != pos)
             continue;
 
-        auto pp = NewFens[i];
+        auto pp = OldFens[i];
 
-        if (depth > pp.nodes.size())
+        if (pp.nodes[depth - 1] == 0)
             continue;
 
-        checks = 0;
-        discovered_checks = 0;
-        double_checks = 0;
+        total_checks = 0;
+        dir_checks = 0;
+        rev_checks = 0;
+        dir_rev_checks = 0;
+        rev_rev_checks = 0;
         ep = 0;
         mates = 0;
         castles = 0;
@@ -6844,22 +6868,32 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves)
 
         Position pos(pp.fen);
 
-        //cout << pos.dump() << endl << endl;
+        cout << pos.dump() << endl;
 
-        //cout << pp.fen << endl;
+        //cout << pp.fen << endl << endl;
+
+        auto t0 = chrono::system_clock::now();
 
         int64_t have_nodes = perft(pos,
                                    depth,
                                    illegal_moves,
-                                   checks,
-                                   discovered_checks,
-                                   double_checks,
+                                   total_checks,
+                                   dir_checks,
+                                   rev_checks,
+                                   dir_rev_checks,
+                                   rev_rev_checks,
                                    ep,
                                    mates,
                                    castles,
                                    captures,
                                    promos
                 );
+    
+        auto t1 = chrono::system_clock::now();
+
+        auto ns_local = chrono::duration_cast<chrono::microseconds>(t1 - t0);
+
+        ns += ns_local.count();
 
         int64_t want_nodes = pp.nodes[depth - 1];
 
@@ -6867,15 +6901,18 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves)
 
         nodes += have_nodes;
 
-        cout << i << "," << want_nodes << "," << have_nodes << "," << nodes_diff << '\n';
-        /*
+        //cout << i << "," << want_nodes << "," << have_nodes << "," << nodes_diff << '\n';
 
         cout << "\twant nodes: " << want_nodes               << endl;
         cout << "\thave nodes: " << have_nodes               << endl;
         cout << "\tdiff nodes: " << have_nodes - want_nodes  << endl;
-        cout << "\tchecks: "     << checks                   << endl;
-        cout << "\tdsc checks: " << discovered_checks        << endl;
-        cout << "\tdbl checks: " << double_checks            << endl;
+
+        cout << "\ttotal checks: "      << total_checks             << endl;
+        cout << "\tdir checks: "        << dir_checks               << endl;
+        cout << "\trev checks: "        << rev_checks               << endl;
+        cout << "\tdir rev checks: "    << dir_rev_checks           << endl;
+        cout << "\trev rev checks: "    << rev_rev_checks           << endl;
+
         cout << "\tep: "         << ep                       << endl;
         cout << "\tmates: "      << mates                    << endl;
         cout << "\tcastles: "    << castles                  << endl;
@@ -6883,7 +6920,6 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves)
         cout << "\tpromos: "     << promos                   << endl;
 
         cout << endl;
-        */
     }
 
     cout << '\n';
@@ -6894,9 +6930,11 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves)
 int64_t perft(Position& pos,
               int depth,
               int64_t& illegal_moves,
-              int64_t& checks,
-              int64_t& discovered_checks,
-              int64_t& double_checks,
+              int64_t& total_checks,
+              int64_t& dir_checks,
+              int64_t& rev_checks,
+              int64_t& dir_rev_checks,
+              int64_t& rev_rev_checks,
               int64_t& ep,
               int64_t& mates,
               int64_t& castles,
@@ -6905,16 +6943,12 @@ int64_t perft(Position& pos,
         )
 {
     if (depth == 0) {
-        checks              += pos.last_move().is_check();
 
-        if (   pos.last_move().is_double_check()
-            || pos.last_move().is_ep_double_special())
-            double_checks++;
-        
-        if (    pos.last_move().is_rev_check()
-            && !pos.last_move().is_double_check()
-            && !pos.last_move().is_ep_double_special())
-            discovered_checks++;
+        total_checks        += pos.last_move().is_check();
+        dir_checks          += pos.last_move().is_dir_check();
+        rev_checks          += pos.last_move().is_rev_check();
+        dir_rev_checks      += pos.last_move().is_dir_rev_check();
+        rev_rev_checks      += pos.last_move().is_rev_rev_check();
 
         ep                  += pos.last_move().is_ep();
         castles             += pos.last_move().is_castle();
@@ -6929,10 +6963,9 @@ int64_t perft(Position& pos,
     int64_t legal_moves = 0;
     int64_t total_moves = Gen::gen_pseudo_moves(moves, pos);
 
-    for (Gen::Move& m : moves)
-        pos.note_move(m);
+    for (Gen::Move& m : moves) pos.note_move(m);
 
-    // if (depth == 1) return total_moves;
+    //if (depth == 1) return total_moves;
 
     for (const Gen::Move& m : moves) {
         Gen::Undo undo;
@@ -6942,9 +6975,20 @@ int64_t perft(Position& pos,
         int side = pos.side();
 
         if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
-        //if (pos.move_was_legal()) {
 
-            int64_t pmoves = perft(pos, depth - 1, illegal_moves, checks, discovered_checks, double_checks, ep, mates, castles, captures, promos);
+            int64_t pmoves = perft(pos,
+                                    depth - 1,
+                                    illegal_moves,
+                                    total_checks,
+                                    dir_checks,
+                                    rev_checks,
+                                    dir_rev_checks,
+                                    rev_rev_checks,
+                                    ep,
+                                    mates, 
+                                    castles, 
+                                    captures,
+                                    promos);
 
             legal_moves += pmoves;
         }
