@@ -112,5 +112,20 @@ namespace Piece {
 
         return piece12_to_char[piece << 1];
     }
+
+    Piece256 make_pawn(int side)
+    {
+        assert(side_is_ok(side));
+
+        return WhitePawn256 << side;
+    }
+
+    Piece256 flip_pawn(Piece256 piece)
+    {
+        assert(is_pawn(piece));
+        assert(piece256_is_ok(piece));
+
+        return piece ^ (PawnFlags256 | ColorFlags256);
+    }
 }
 

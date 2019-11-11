@@ -1,6 +1,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
+#include <sstream>
+#include <string>
 #include <cassert>
 #include <cstdint>
 #include "piece.h"
@@ -36,7 +38,7 @@ namespace Gen {
         inline bool is_dir_check()      const { return (data_ & CheckFlags) == DirectCheckFlag; }
         inline bool is_rev_check()      const { return (data_ & CheckFlags) == RevealCheckFlag; }
         inline bool is_dir_rev_check()  const { return (data_ & CheckFlags) == (DirectCheckFlag | RevealCheckFlag); }
-        inline bool is_rev_rev_check()  const { return (data_ & CheckFlags) == (DirectCheckFlag | EPRevRevCheckFlag); }
+        inline bool is_rev_rev_check()  const { return (data_ & CheckFlags) == (RevealCheckFlag | EPRevRevCheckFlag); }
         
         inline Move() { }
         inline Move(uint32_t data) : data_(data) { }
@@ -79,6 +81,8 @@ namespace Gen {
         int ep_sq;
         int half_moves;
         int full_moves;
+
+        uint64_t key;
 
         int check_sq[2];
 

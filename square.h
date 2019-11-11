@@ -28,6 +28,11 @@ constexpr bool is_sq88(int sq)
     return (sq & ~0x77) == 0;
 }
 
+constexpr bool is_sq64(int sq)
+{
+    return sq >= 0 && sq < 64;
+}
+
 constexpr bool rank_is_ok(int rank)
 {
     return rank >= Rank1 && rank <= Rank8;

@@ -97,6 +97,9 @@ namespace Piece {
 
     constexpr bool is_slider        (Piece256 piece) { return (piece & QueenFlags256) != PieceNone256; }
     
+    Piece::Piece256 make_pawn(int side);
+    Piece::Piece256 flip_pawn(Piece256 piece);
+    
     constexpr int flip_side         (int side) { return side ^ 1; }
 
     char to_char                    (int piece);

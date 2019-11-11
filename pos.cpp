@@ -6,11 +6,14 @@
 #include <cassert>
 #include <cstring>
 #include "gen.h"
+#include "hash.h"
 #include "move.h"
 #include "piece.h"
 #include "pos.h"
 #include "string.h"
 using namespace std;
+
+constexpr bool HashEnabled = false;
 
 void Position::init()
 {
@@ -152,6 +155,15 @@ Position::Position(const string& fen)
         last_move_ = last_move_ | Gen::Move::DirectCheckFlag | Gen::Move::RevealCheckFlag;
     }
 
+    // key
+
+    if (HashEnabled) {
+        key_ ^= Hash::key_castle(flags_);
+        if (ep_is_valid())
+            key_ ^= Hash::key_ep(ep_sq_);
+        key_ ^= Hash::key_side(side_);
+    }
+
     assert(is_ok() == 0);
 }
 
@@ -213,7 +225,7 @@ string Position::to_fen() const
 
 // TODO: can we remove the piece temporarily?
 
-void Position::note_move(Gen::Move& move)
+void Position::note_move(Gen::Move& move) const
 {
     int mside = side_;
     int oside = Piece::flip_side(side_);
@@ -252,6 +264,10 @@ void Position::note_move(Gen::Move& move)
     }
 
     if (move.is_ep()) {
+        inc = pawn_inc(mside); 
+
+        int mpawn_curr = orig;
+        int opawn_curr = dest - inc;
 
         // direct check?
 
@@ -276,14 +292,15 @@ void Position::note_move(Gen::Move& move)
             inc = Gen::delta_inc(king, orig);
             sq = king;
 
-            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+            do { 
 
-            if (sq == orig) {
-                do { sq += inc; } while ((piece256 = square(sq)) == Piece::PieceNone256);
+                sq += inc;
 
-                if ((piece256 & mflag) && (piece256 & type256))
-                    checkers++;
-            }
+            } while ( sq == mpawn_curr
+                  ||  sq == opawn_curr
+                  || (piece256 = square(sq)) == Piece::PieceNone256);
+
+            checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
         // revealed check on line of captured pawn?
@@ -296,14 +313,15 @@ void Position::note_move(Gen::Move& move)
             inc = Gen::delta_inc(king, cap);
             sq = king;
 
-            do { sq += inc; } while (square(sq) == Piece::PieceNone256);
+            do {
 
-            if (sq == cap) {
-                do { sq += inc; } while ((piece256 = square(sq)) == Piece::PieceNone256);
-
-                if ((piece256 & mflag) && (piece256 & type256))
-                    checkers++;
-            }
+                sq += inc;
+            
+            } while ( sq == mpawn_curr
+                  ||  sq == opawn_curr
+                  || (piece256 = square(sq)) == Piece::PieceNone256);
+        
+            checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
         if (checkers == 1) move.set_rev_check();
@@ -401,7 +419,15 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     undo.ep_sq          = ep_sq_;
     undo.half_moves     = half_moves_;
     undo.full_moves     = full_moves_;
+    undo.key            = key_;
     undo.last_move      = last_move_;
+
+    if (HashEnabled) {
+        key_ ^= Hash::key_castle(flags_);
+        if (ep_is_valid())
+            key_ ^= Hash::key_ep(ep_sq_);
+        key_ ^= Hash::key_side(side_);
+    }
 
     int orig = move.orig();
     int dest = move.dest();
@@ -445,6 +471,13 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 
     last_move_ = move;
 
+    if (HashEnabled) {
+        key_ ^= Hash::key_castle(flags_);
+        if (ep_is_valid())
+            key_ ^= Hash::key_ep(ep_sq_);
+        key_ ^= Hash::key_side(side_);
+    }
+
     //assert(is_ok(false) == 0);
 }
 
@@ -454,6 +487,7 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
     ep_sq_          = undo.ep_sq;
     half_moves_     = undo.half_moves;
     full_moves_     = undo.full_moves;
+    key_            = undo.key;
     last_move_      = undo.last_move;
 
     int orig = move.orig();
@@ -578,6 +612,9 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
 
     piece_list_[p12].add(sq);
 
+    if (HashEnabled)
+        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, sq);
+
     square(sq) = piece256;
 }
 
@@ -595,6 +632,9 @@ void Position::rem_piece(int sq)
     assert(Piece::piece12_is_ok(p12));
     
     piece_list_[p12].remove(sq);
+   
+    if (HashEnabled)
+        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, sq);
 
     square(sq) = Piece::PieceNone256;
 }
@@ -615,6 +655,11 @@ void Position::mov_piece(int orig, int dest)
     assert(Piece::piece12_is_ok(p12));
     
     piece_list_[p12].replace(orig, dest);
+
+    if (HashEnabled) {
+        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, orig);
+        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, dest);
+    }
 
     swap(square(orig), square(dest));
 }
@@ -775,8 +820,10 @@ string Position::dump() const
 {
     ostringstream oss;
 
-    oss << ' ' << to_fen() << endl << endl 
-        << "    +---+---+---+---+---+---+---+---+" << endl;
+    oss << "FEN: " << to_fen() << endl;
+    oss << "key: " << hex << calc_key() << endl;
+    oss << endl;
+    oss << "    +---+---+---+---+---+---+---+---+" << endl;
    
     for (int rank = 7; rank >= 0; rank--) {
         oss << ' ' << (rank + 1) << "  |";
@@ -804,4 +851,45 @@ string Position::dump() const
     oss << "      a   b   c   d   e   f   g   h  " << endl;
 
     return oss.str();
+}
+
+uint64_t Position::calc_key() const
+{
+    uint64_t key = 0;
+
+    for (int i = 0; i < 64; i++) {
+        int sq = to_sq88(i);
+
+        Piece::Piece256 piece256 = square(sq);
+
+        if (piece256 == Piece::PieceNone256)
+            continue;
+
+        assert(Piece::piece256_is_ok(piece256));
+
+        int p12 = Piece::to_piece12(piece256);
+        int side = p12 & 1;
+        int piece = p12 >> 1;
+
+        key ^= Hash::key_piece(side, piece, sq);
+    }
+
+    key ^= Hash::key_castle(flags_);
+    if (ep_is_valid())
+        key ^= Hash::key_ep(ep_sq_);
+    key ^= Hash::key_side(side_);
+
+    return key;
+}
+
+bool Position::ep_is_valid() const
+{
+    if (ep_sq_ == SquareNone)
+        return false;
+
+    int sq = ep_sq_ - pawn_inc(side_);
+
+    Piece::Piece256 mpawn = Piece::make_pawn(side_);
+
+    return square(sq - 1) == mpawn || square(sq + 1) == mpawn;
 }

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include "gen.h"
+#include "hash.h"
 #include "move.h"
 #include "piece.h"
 #include "square.h"
@@ -35,17 +36,21 @@ public:
 
     bool move_was_legal() const;
 
-    void   note_move(Gen::Move& move);
+    void   note_move(Gen::Move& move) const;
 
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);
     void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
 
+    uint64_t      key() const { return key_; }
+    uint64_t calc_key() const;
 
     void mark_pins();
 
     void add_piece(int sq, Piece::Piece256 p);
     void rem_piece(int sq);
     void mov_piece(int orig, int dest);
+
+    bool ep_is_valid() const;
 
     bool side_attacks(int side, int dest) const;
     bool piece_attacks(int orig, int dest) const;
@@ -150,6 +155,8 @@ private:
     int ep_sq_ = SquareNone;
     int half_moves_ = 0;
     int full_moves_ = 1;
+
+    uint64_t key_ = 0;
     
     Gen::Move last_move_ = 0;
 
