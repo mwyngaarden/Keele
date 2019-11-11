@@ -236,14 +236,21 @@ void Position::note_move(Gen::Move& move) const
     int dest = move.dest();
 
     Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
-    Piece::Piece256 mpawn = Piece::WhitePawn256 << mside;
+
+    Piece::Piece256 mpawn = Piece::make_pawn(mside);
+    Piece::Piece256 opawn = Piece::make_pawn(oside);
 
     Piece::Piece256 type256;
     Piece::Piece256 piece256;
 
-    int cap;
     int inc;
     int sq;
+
+#if 0
+    if (orig == 65 && dest == 82) {
+        cout << "here" << endl;
+    }
+#endif
 
     // direct check only
 
@@ -264,10 +271,7 @@ void Position::note_move(Gen::Move& move) const
     }
 
     if (move.is_ep()) {
-        inc = pawn_inc(mside); 
-
-        int mpawn_curr = orig;
-        int opawn_curr = dest - inc;
+        const int cap = dest - pawn_inc(mside);
 
         // direct check?
 
@@ -278,9 +282,12 @@ void Position::note_move(Gen::Move& move) const
 
             // revealed checks impossible if direct check on same diagonal as ep capture
 
-            if ((dest - orig) == (king - dest))
-                return;
         }
+
+        inc = dest - orig;
+
+        if (inc == Gen::delta_inc(dest, king))
+            return;
 
         int checkers = 0;
 
@@ -296,17 +303,14 @@ void Position::note_move(Gen::Move& move) const
 
                 sq += inc;
 
-            } while ( sq == mpawn_curr
-                  ||  sq == opawn_curr
-                  || (piece256 = square(sq)) == Piece::PieceNone256);
+            } while ( sq != dest
+                  && (sq == cap ||  sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
 
             checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
         // revealed check on line of captured pawn?
 
-        cap = dest - pawn_inc(mside);
-        
         type256 = Gen::delta_type(king, cap);
 
         if (type256 & Piece::QueenFlags256) {
@@ -317,15 +321,16 @@ void Position::note_move(Gen::Move& move) const
 
                 sq += inc;
             
-            } while ( sq == mpawn_curr
-                  ||  sq == opawn_curr
-                  || (piece256 = square(sq)) == Piece::PieceNone256);
+            } while ( sq != dest
+                  && (sq == cap ||  sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
         
             checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
-        if (checkers == 1) move.set_rev_check();
-        if (checkers == 2) move.set_rev_rev_check();
+        if (checkers >= 1) move.set_rev_check();
+        if (checkers >= 2) move.set_rev_rev_check();
+
+ep_hack:
 
         return;
     }

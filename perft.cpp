@@ -60,12 +60,24 @@ struct Perft {
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
+
+    Perft("8/6p1/5k2/4pP2/8/8/1B3Q2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    Perft("8/6p1/5k2/4pP2/8/8/1R3B2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+
+    Perft("rnbqkbnr/p3pppp/3p4/1Pp5/Q7/8/PP1PPPPP/RNB1KBNR w KQkq c6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860),
+
     Perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 48, 2039, 97862, 4085603, 193690690, 8031647685),
+
     Perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 14, 191, 2812, 43238, 674624, 11030083, 178633661, 3009794393),
+
     Perft("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 6, 264, 9467, 422333, 15833292, 706045033),
+
     Perft("r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1", 6, 264, 9467, 422333, 15833292, 706045033),
+
     Perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 44, 1486, 62379, 2103487, 89941194),
+
     Perft("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 46, 2079, 89890, 3894594, 164075551, 6923051137, 287188994746, 11923589843526, 490154852788714)
 };
 
@@ -156,6 +168,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         nodes += have_nodes;
 
         int64_t tchecks = dir_checks + rev_checks + dir_rev_checks + rev_rev_checks;
+        int64_t double_checks = dir_rev_checks + rev_rev_checks;
 
         //cout << i << "," << want_nodes << "," << have_nodes << "," << nodes_diff << '\n';
 
@@ -163,12 +176,13 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         cout << "\thave nodes: " << have_nodes               << endl;
         cout << "\tdiff nodes: " << have_nodes - want_nodes  << endl;
 
-        cout << "\ttotal checks: "      << total_checks             << endl;
-        cout << "\tdir checks: "        << dir_checks               << endl;
-        cout << "\trev checks: "        << rev_checks               << endl;
-        cout << "\tdir rev checks: "    << dir_rev_checks           << endl;
-        cout << "\trev rev checks: "    << rev_rev_checks           << endl;
-        cout << "\ttchecks: "           << tchecks                  << endl;
+        cout << "\ttotal checks: "      << total_checks      << endl;
+        cout << "\tdir checks: "        << dir_checks        << endl;
+        cout << "\trev checks: "        << rev_checks        << endl;
+        cout << "\tdir rev checks: "    << dir_rev_checks    << endl;
+        cout << "\trev rev checks: "    << rev_rev_checks    << endl;
+        cout << "\tdouble checks: "     << double_checks     << endl;
+        cout << "\ttchecks: "           << tchecks           << endl;
 
         cout << "\tep: "         << ep                       << endl;
         cout << "\tmates: "      << mates                    << endl;
@@ -247,13 +261,9 @@ int64_t perft(Position& pos,
             bool lm_check = pos.last_move().is_check();
             bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
 
-            if (!!lm_check != !!sa_check) 
-                cout << dump_move_stack() << endl;
+            if (lm_check != sa_check) cout << dump_move_stack() << endl;
 
             total_checks        += sa_check;
-
-            //total_checks        += pos.last_move().is_check();
-            
             dir_checks          += pos.last_move().is_dir_check();
             rev_checks          += pos.last_move().is_rev_check();
             dir_rev_checks      += pos.last_move().is_dir_rev_check();
