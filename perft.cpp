@@ -61,9 +61,12 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
 
-    Perft("8/6p1/5k2/4pP2/8/8/1B3Q2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    Perft("8/2p5/3p4/1P6/K3Pprk/1R6/6P1/8 b - e3 0 3", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    Perft("1R6/8/7k/4pPp1/8/4K3/5R2/8 w - g6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    Perft("8/6p1/5k2/4pP2/8/8/1Q3Q2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    Perft("8/6p1/5k2/4pP2/8/8/1R3R2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("8/6p1/5k2/4pP2/8/8/1R3B2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-
+    Perft("8/6p1/5k2/4pP2/8/8/1B3R2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("rnbqkbnr/p3pppp/3p4/1Pp5/Q7/8/PP1PPPPP/RNB1KBNR w KQkq c6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
 
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860),
@@ -251,8 +254,8 @@ int64_t perft(Position& pos,
         )
 {
     if (depth == 0) {
-        //bool mate = is_mate(pos);
-        bool mate = false;
+        bool mate = is_mate(pos);
+        //bool mate = false;
 
         mates += mate;
 
@@ -262,6 +265,8 @@ int64_t perft(Position& pos,
             bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
 
             if (lm_check != sa_check) cout << dump_move_stack() << endl;
+
+            //if (pos.last_move().is_rev_rev_check()) cout << dump_move_stack() << endl;
 
             total_checks        += sa_check;
             dir_checks          += pos.last_move().is_dir_check();

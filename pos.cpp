@@ -247,7 +247,7 @@ void Position::note_move(Gen::Move& move) const
     int sq;
 
 #if 0
-    if (orig == 65 && dest == 82) {
+    if (orig == 53 && dest == 36) {
         cout << "here" << endl;
     }
 #endif
@@ -277,15 +277,13 @@ void Position::note_move(Gen::Move& move) const
 
         type256 = Gen::delta_type(dest, king);
 
-        if (type256 & mpawn) {
+        if (type256 & mpawn)
             move.set_dir_check();
-
-            // revealed checks impossible if direct check on same diagonal as ep capture
-
-        }
 
         inc = dest - orig;
 
+        // revealed checks impossible if ep captures towards king on its diagonal
+        
         if (inc == Gen::delta_inc(dest, king))
             return;
 
@@ -293,44 +291,45 @@ void Position::note_move(Gen::Move& move) const
 
         // revealed check on line of moving pawn
 
-        type256 = Gen::delta_type(king, orig);
+        type256 = Gen::delta_type(king, orig) & Piece::QueenFlags256;
 
-        if (type256 & Piece::QueenFlags256) {
+        if (type256) {
             inc = Gen::delta_inc(king, orig);
             sq = king;
+            piece256 = Piece::PieceNone256;
 
             do { 
-
                 sq += inc;
-
             } while ( sq != dest
-                  && (sq == cap ||  sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
+                  && (sq == cap || sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
 
             checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
+        if ((Gen::delta_type(king, cap) & Piece::QueenFlags256) == type256)
+            goto ep_hack;
+
         // revealed check on line of captured pawn?
 
-        type256 = Gen::delta_type(king, cap);
+        type256 = Gen::delta_type(king, cap) & Piece::QueenFlags256;
 
-        if (type256 & Piece::QueenFlags256) {
+        if (type256) { 
             inc = Gen::delta_inc(king, cap);
             sq = king;
+            piece256 = Piece::PieceNone256;
 
             do {
-
                 sq += inc;
-            
             } while ( sq != dest
-                  && (sq == cap ||  sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
+                  && (sq == cap || sq == orig || (piece256 = square(sq)) == Piece::PieceNone256));
         
             checkers += (piece256 & mflag) && (piece256 & type256);
         }
 
+ep_hack:
+
         if (checkers >= 1) move.set_rev_check();
         if (checkers >= 2) move.set_rev_rev_check();
-
-ep_hack:
 
         return;
     }
@@ -353,7 +352,9 @@ ep_hack:
                 inc = Gen::delta_inc(dest, king);
                 sq = dest;
 
-                do { sq += inc; } while (square(sq) ==  Piece::PieceNone256);
+                do {
+                    sq += inc;
+                } while (sq == orig || square(sq) ==  Piece::PieceNone256);
 
                 if (sq == king)
                     move.set_dir_check();
