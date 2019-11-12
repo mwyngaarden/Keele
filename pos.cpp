@@ -13,8 +13,6 @@
 #include "string.h"
 using namespace std;
 
-constexpr bool HashEnabled = true;
-
 void Position::init()
 {
     fill(square_, square_ + 192, Piece::PieceInvalid256);
@@ -60,7 +58,7 @@ Position::Position(const string& fen)
             file += c - '0';
             break;
         default:
-            add_piece(to_sq88(file, rank), Piece::to_piece256(c));
+            add_piece(to_sq88(file, rank), Piece::to_piece256(c), true);
             file++;
             break;
         }
@@ -154,11 +152,9 @@ Position::Position(const string& fen)
 
     // key
 
-    if (HashEnabled) {
-        key_ ^= Hash::hash_castle(flags_);
-        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
-        key_ ^= Hash::hash_side(side_);
-    }
+    key_ ^= Hash::hash_castle(flags_);
+    key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
+    key_ ^= Hash::hash_side(side_);
 
     assert(is_ok() == 0);
 }
@@ -423,11 +419,9 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     undo.key            = key_;
     undo.last_move      = last_move_;
 
-    if (HashEnabled) {
-        key_ ^= Hash::hash_castle(flags_);
-        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
-        key_ ^= Hash::hash_side(side_);
-    }
+    key_ ^= Hash::hash_castle(flags_);
+    key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
+    key_ ^= Hash::hash_side(side_);
 
     int orig = move.orig();
     int dest = move.dest();
@@ -440,26 +434,26 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
         int rook_orig = dest > orig ? orig + 3 : orig - 4;
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece(orig, dest);
-        mov_piece(rook_orig, rook_dest);
+        mov_piece(orig, dest, true);
+        mov_piece(rook_orig, rook_dest, true);
     }
     else if (move.is_ep()) {
-        rem_piece(dest - inc);
-        mov_piece(orig, dest);
+        rem_piece(dest - inc, true);
+        mov_piece(orig, dest, true);
     }
     else {
         if (move.is_capture()) {
-            rem_piece(dest);
+            rem_piece(dest, true);
 
             flags_ &= Gen::castle_flag(dest);
         }
         
         if (move.is_promo()) {
-            rem_piece(orig);
-            add_piece(dest, Piece::to_piece256(side_, move.promo_piece()));
+            rem_piece(orig, true);
+            add_piece(dest, Piece::to_piece256(side_, move.promo_piece()), true);
         }
         else
-            mov_piece(orig, dest);
+            mov_piece(orig, dest, true);
     }
         
     flags_ &= Gen::castle_flag(orig);
@@ -471,11 +465,9 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 
     last_move_ = move;
 
-    if (HashEnabled) {
-        key_ ^= Hash::hash_castle(flags_);
-        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
-        key_ ^= Hash::hash_side(side_);
-    }
+    key_ ^= Hash::hash_castle(flags_);
+    key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
+    key_ ^= Hash::hash_side(side_);
 
     assert(is_ok(false) == 0);
 }
@@ -501,27 +493,27 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
         Piece::Piece256 rook256 = square(rook_dest);
 
-        rem_piece(dest);
-        rem_piece(rook_dest);
+        rem_piece(dest, false);
+        rem_piece(rook_dest, false);
 
-        add_piece(orig, piece256);
-        add_piece(rook_orig, rook256);
+        add_piece(orig, piece256, false);
+        add_piece(rook_orig, rook256, false);
     }
     else if (move.is_ep()) {
-        rem_piece(dest);
-        add_piece(orig, piece256);
-        add_piece(dest - inc, Piece::to_piece256(side_, Piece::Pawn));
+        rem_piece(dest, false);
+        add_piece(orig, piece256, false);
+        add_piece(dest - inc, Piece::to_piece256(side_, Piece::Pawn), false);
     }
     else {
-        rem_piece(dest);
+        rem_piece(dest, false);
 
         if (move.is_promo())
-            add_piece(orig, Piece::to_piece256(Piece::flip_side(side_), Piece::Pawn));
+            add_piece(orig, Piece::to_piece256(Piece::flip_side(side_), Piece::Pawn), false);
         else
-            add_piece(orig, piece256);
+            add_piece(orig, piece256, false);
         
         if (move.is_capture())
-            add_piece(dest, move.capture_piece());
+            add_piece(dest, move.capture_piece(), false);
     }
 
     side_ = Piece::flip_side(side_);
@@ -618,7 +610,7 @@ int Position::is_ok(bool in_check) const
     return 0;
 }
 
-void Position::add_piece(int sq, Piece::Piece256 piece256)
+void Position::add_piece(int sq, Piece::Piece256 piece256, bool update_key)
 {
     assert(is_sq88(sq));
     assert(is_empty(sq));
@@ -630,13 +622,13 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
 
     piece_list_[p12].add(sq);
 
-    if (HashEnabled)
+    if (update_key)
         key_ ^= Hash::hash_piece(p12, sq);
 
     square(sq) = piece256;
 }
 
-void Position::rem_piece(int sq)
+void Position::rem_piece(int sq, bool update_key)
 {
     assert(is_sq88(sq));
     assert(!is_empty(sq));
@@ -651,13 +643,13 @@ void Position::rem_piece(int sq)
     
     piece_list_[p12].remove(sq);
    
-    if (HashEnabled)
+    if (update_key)
         key_ ^= Hash::hash_piece(p12, sq);
 
     square(sq) = Piece::PieceNone256;
 }
 
-void Position::mov_piece(int orig, int dest)
+void Position::mov_piece(int orig, int dest, bool update_key)
 {
     assert(is_sq88(orig));
     assert(is_sq88(dest));
@@ -674,7 +666,7 @@ void Position::mov_piece(int orig, int dest)
     
     piece_list_[p12].replace(orig, dest);
 
-    if (HashEnabled) {
+    if (update_key) {
         key_ ^= Hash::hash_piece(p12, orig);
         key_ ^= Hash::hash_piece(p12, dest);
     }

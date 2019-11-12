@@ -44,9 +44,9 @@ public:
 
     void mark_pins();
 
-    void add_piece(int sq, Piece::Piece256 p);
-    void rem_piece(int sq);
-    void mov_piece(int orig, int dest);
+    void add_piece(int sq, Piece::Piece256 p, bool update_key);
+    void rem_piece(int sq, bool update_key);
+    void mov_piece(int orig, int dest, bool update_key);
 
     bool ep_is_valid() const;
 
