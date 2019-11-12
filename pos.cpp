@@ -158,10 +158,10 @@ Position::Position(const string& fen)
     // key
 
     if (HashEnabled) {
-        key_ ^= Hash::key_castle(flags_);
+        key_ ^= Hash::hash_castle(flags_);
         if (ep_is_valid())
-            key_ ^= Hash::key_ep(ep_sq_);
-        key_ ^= Hash::key_side(side_);
+            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= Hash::hash_side(side_);
     }
 
     assert(is_ok() == 0);
@@ -429,10 +429,10 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     undo.last_move      = last_move_;
 
     if (HashEnabled) {
-        key_ ^= Hash::key_castle(flags_);
+        key_ ^= Hash::hash_castle(flags_);
         if (ep_is_valid())
-            key_ ^= Hash::key_ep(ep_sq_);
-        key_ ^= Hash::key_side(side_);
+            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= Hash::hash_side(side_);
     }
 
     int orig = move.orig();
@@ -478,10 +478,10 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     last_move_ = move;
 
     if (HashEnabled) {
-        key_ ^= Hash::key_castle(flags_);
+        key_ ^= Hash::hash_castle(flags_);
         if (ep_is_valid())
-            key_ ^= Hash::key_ep(ep_sq_);
-        key_ ^= Hash::key_side(side_);
+            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= Hash::hash_side(side_);
     }
 
     //assert(is_ok(false) == 0);
@@ -619,7 +619,7 @@ void Position::add_piece(int sq, Piece::Piece256 piece256)
     piece_list_[p12].add(sq);
 
     if (HashEnabled)
-        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, sq);
+        key_ ^= Hash::hash_piece(p12, sq);
 
     square(sq) = piece256;
 }
@@ -640,7 +640,7 @@ void Position::rem_piece(int sq)
     piece_list_[p12].remove(sq);
    
     if (HashEnabled)
-        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, sq);
+        key_ ^= Hash::hash_piece(p12, sq);
 
     square(sq) = Piece::PieceNone256;
 }
@@ -663,8 +663,8 @@ void Position::mov_piece(int orig, int dest)
     piece_list_[p12].replace(orig, dest);
 
     if (HashEnabled) {
-        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, orig);
-        key_ ^= Hash::key_piece(p12 & 1, p12 >> 1, dest);
+        key_ ^= Hash::hash_piece(p12, orig);
+        key_ ^= Hash::hash_piece(p12, dest);
     }
 
     swap(square(orig), square(dest));
@@ -874,16 +874,14 @@ uint64_t Position::calc_key() const
         assert(Piece::piece256_is_ok(piece256));
 
         int p12 = Piece::to_piece12(piece256);
-        int side = p12 & 1;
-        int piece = p12 >> 1;
 
-        key ^= Hash::key_piece(side, piece, sq);
+        key ^= Hash::hash_piece(p12, sq);
     }
 
-    key ^= Hash::key_castle(flags_);
+    key ^= Hash::hash_castle(flags_);
     if (ep_is_valid())
-        key ^= Hash::key_ep(ep_sq_);
-    key ^= Hash::key_side(side_);
+        key ^= Hash::hash_ep(ep_sq_);
+    key ^= Hash::hash_side(side_);
 
     return key;
 }

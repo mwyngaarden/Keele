@@ -18,7 +18,6 @@ namespace Gen {
     static void gen_queen_moves    (Move::List& moves, const Position& pos, int orig);
 
     static void gen_king_moves     (Move::List& moves, const Position& pos, int orig);
-    static void gen_king_evasions  (Move::List& moves, const Position& pos, int orig);
     static void gen_king_castles   (Move::List& moves, const Position& pos, int orig);
     
     void init()
@@ -98,6 +97,19 @@ namespace Gen {
 
     size_t gen_legal_moves(Move::List& moves, const Position& pos)
     {
+        return moves.size();
+    }
+
+    size_t gen_pawn_moves(Move::List& moves, const Position& pos)
+    {
+        assert(pos.is_ok() == 0);
+
+        int side = pos.side();
+        int king = pos.king_sq();
+
+        for (auto orig : pos.piece_list(Piece::WhitePawn12 + side))
+            gen_pawn_moves(moves, pos, orig);
+
         return moves.size();
     }
 
@@ -272,9 +284,6 @@ namespace Gen {
             else if (piece & ocolor)
                 moves.add(Move(orig, dest, piece));
         }
-
-        //if (pos.can_castle())
-            //moves = gen_king_castles(moves, pos, orig);
     }
 
     void gen_king_evasions(Move::List& moves, const Position& pos, int orig)

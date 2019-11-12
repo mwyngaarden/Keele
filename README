@@ -1,3 +1,8 @@
 change from returning and operation as bool to use != 
 
-allow king to move next to opponent king and remember to validate
+
+for validating ep rev rev double check
+    if d == 2 && move is not pawn double push
+        continue
+    if d == 1 && move is not ep and check
+        continue

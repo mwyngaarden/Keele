@@ -212,18 +212,25 @@ static constexpr int KeySideIndex   = 780;
 
 static uint64_t KeyCastleFast[16];
 
-static uint64_t key_castle_slow(int flags);
-
 void init()
 {
-    for (int i = 0; i < 16; i++)
-        KeyCastleFast[i] = key_castle_slow(i);
+    for (int flags = 0; flags < 16; flags++) {
+        uint64_t key = 0;
+
+        // modified indices to match polyglot
+
+        if (flags & 1) key ^= random64[KeyCastleIndex + 0];
+        if (flags & 2) key ^= random64[KeyCastleIndex + 2];
+        if (flags & 4) key ^= random64[KeyCastleIndex + 1];
+        if (flags & 8) key ^= random64[KeyCastleIndex + 3];
+
+        KeyCastleFast[flags] = key;
+    }
 }
 
-uint64_t key_piece(int side, int piece, int sq)
+uint64_t hash_piece(int piece, int sq)
 {
-    assert(Piece::side_is_ok(side));
-    assert(Piece::piece_is_ok(side));
+    assert(Piece::piece12_is_ok(piece));
     assert(is_sq88(sq));
 
     int sq64 = to_sq64(sq);
@@ -232,23 +239,19 @@ uint64_t key_piece(int side, int piece, int sq)
     
     // modified indices to match polyglot
 
-    int piece12 = 2 * piece + (side ^ 1);
-    
-    assert(Piece::piece12_is_ok(piece12));
-
-    int index = piece12 * 64 + sq64;
+    int index = (piece ^ 1) * 64 + sq64;
 
     return random64[KeyPieceIndex + index];
 }
 
-uint64_t key_castle(int flags)
+uint64_t hash_castle(int flags)
 {
     assert(flags >= 0 && flags < 16);
 
     return KeyCastleFast[flags];
 }
 
-uint64_t key_ep(int sq)
+uint64_t hash_ep(int sq)
 {
     assert(is_sq88(sq));
 
@@ -259,27 +262,11 @@ uint64_t key_ep(int sq)
     return random64[KeyEpIndex + file];
 }
 
-uint64_t key_side(int side)
+uint64_t hash_side(int side)
 {
     assert(Piece::side_is_ok(side));
 
     return side == Piece::White ? random64[KeySideIndex] : 0;
-}
-
-uint64_t key_castle_slow(int flags)
-{
-    assert(flags >= 0 && flags < 16);
-
-    uint64_t key = 0;
-
-    // modified indices to match polyglot
-
-    if (flags & 1) key ^= random64[KeyCastleIndex + 0];
-    if (flags & 2) key ^= random64[KeyCastleIndex + 2];
-    if (flags & 4) key ^= random64[KeyCastleIndex + 1];
-    if (flags & 8) key ^= random64[KeyCastleIndex + 3];
-
-    return key;
 }
 
 }
