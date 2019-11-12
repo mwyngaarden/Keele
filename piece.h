@@ -10,33 +10,18 @@ namespace Piece {
     
     void init();
 
-    enum {
-        White,
-        Black
-    };
+    enum { White, Black };
+
+    enum { Pawn, Knight, Bishop, Rook, Queen, King };
 
     enum {
-        Pawn,
-        Knight,
-        Bishop,
-        Rook,
-        Queen,
-        King
-    };
+        WhitePawn12,    BlackPawn12,
+        WhiteKnight12,  BlackKnight12,
+        WhiteBishop12,  BlackBishop12,
+        WhiteRook12,    BlackRook12,
+        WhiteQueen12,   BlackQueen12,
+        WhiteKing12,    BlackKing12,
 
-    enum {
-        WhitePawn12,
-        BlackPawn12,
-        WhiteKnight12,
-        BlackKnight12,
-        WhiteBishop12,
-        BlackBishop12,
-        WhiteRook12,
-        BlackRook12,
-        WhiteQueen12,
-        BlackQueen12,
-        WhiteKing12,
-        BlackKing12,
         PieceNone12
     };
 
@@ -82,39 +67,38 @@ namespace Piece {
 
     // methods
 
-    constexpr bool is_white         (Piece256 piece) { return (piece & WhiteFlag256) != PieceNone256; }
-    constexpr bool is_black         (Piece256 piece) { return (piece & BlackFlag256) != PieceNone256; }
+    constexpr bool is_white     (Piece256 piece) { return (piece & WhiteFlag256) != PieceNone256; }
+    constexpr bool is_black     (Piece256 piece) { return (piece & BlackFlag256) != PieceNone256; }
 
-    constexpr bool is_white_pawn    (Piece256 piece) { return piece == WhitePawn256; }
-    constexpr bool is_black_pawn    (Piece256 piece) { return piece == BlackPawn256; }
+    constexpr bool is_white_pawn(Piece256 piece) { return piece == WhitePawn256; }
+    constexpr bool is_black_pawn(Piece256 piece) { return piece == BlackPawn256; }
 
-    constexpr bool is_pawn          (Piece256 piece) { return (piece & PawnFlags256) != PieceNone256; }
-    constexpr bool is_knight        (Piece256 piece) { return (piece & KnightFlag256) != PieceNone256; }
-    constexpr bool is_bishop        (Piece256 piece) { return (piece & QueenFlags256) == BishopFlag256; }
-    constexpr bool is_rook          (Piece256 piece) { return (piece & QueenFlags256) == RookFlag256; }
-    constexpr bool is_queen         (Piece256 piece) { return (piece & QueenFlags256) == QueenFlags256; }
-    constexpr bool is_king          (Piece256 piece) { return (piece & KingFlag256) != PieceNone256; }
-
-    constexpr bool is_slider        (Piece256 piece) { return (piece & QueenFlags256) != PieceNone256; }
+    constexpr bool is_pawn      (Piece256 piece) { return (piece & PawnFlags256) != PieceNone256; }
+    constexpr bool is_knight    (Piece256 piece) { return (piece & KnightFlag256) != PieceNone256; }
+    constexpr bool is_bishop    (Piece256 piece) { return (piece & QueenFlags256) == BishopFlag256; }
+    constexpr bool is_rook      (Piece256 piece) { return (piece & QueenFlags256) == RookFlag256; }
+    constexpr bool is_queen     (Piece256 piece) { return (piece & QueenFlags256) == QueenFlags256; }
+    constexpr bool is_king      (Piece256 piece) { return (piece & KingFlag256) != PieceNone256; }
+    constexpr bool is_slider    (Piece256 piece) { return (piece & QueenFlags256) != PieceNone256; }
     
-    Piece::Piece256 make_pawn(int side);
-    Piece::Piece256 flip_pawn(Piece256 piece);
-    
-    constexpr int flip_side         (int side) { return side ^ 1; }
+    constexpr Piece256 make_pawn(int side)       { return WhitePawn256 << side; }
+    constexpr Piece256 flip_pawn(Piece256 piece) { return piece ^ (ColorFlags256 | PawnFlags256); }
+    constexpr Piece256 make_flag(int side)       { return side + 1; }
+    constexpr int      flip_side(int side)       { return side ^ 1; }
 
-    char to_char                    (int piece);
-    char to_char                    (Piece256 piece);
-    int to_piece                    (Piece256 piece);
-    int to_piece12                  (Piece256 piece);
-    int to_piece12                  (int side, int piece);
-    Piece256 to_piece256            (int side, int piece);
-    Piece256 to_piece256            (char c);
+    constexpr bool side_is_ok   (int side)       { return side == 0 || side == 1; }
+    constexpr bool piece_is_ok  (int piece)      { return piece >= Pawn && piece <= King; }
+    constexpr bool piece12_is_ok(int piece)      { return piece >= WhitePawn12 && piece <= BlackKing12; }
 
-    constexpr bool side_is_ok       (int side) { return side == 0 || side == 1; }
-    constexpr bool piece_is_ok      (int piece) { return piece >= Pawn && piece <= King; }
-    constexpr bool piece12_is_ok    (int piece) { return piece >= WhitePawn12 && piece <= BlackKing12; }
+    char to_char                (int piece);
+    char to_char                (Piece256 piece);
+    int to_piece                (Piece256 piece);
+    int to_piece12              (Piece256 piece);
+    int to_piece12              (int side, int piece);
+    Piece256 to_piece256        (int side, int piece);
+    Piece256 to_piece256        (char c);
 
-    bool piece256_is_ok   (Piece256 piece);
+    bool piece256_is_ok         (Piece256 piece);
 }
 
 #endif

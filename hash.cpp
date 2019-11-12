@@ -7,6 +7,9 @@ using namespace std;
 namespace Hash {
 
 static constexpr uint64_t random64[781] = {
+
+    // piece square
+
     0x9d39247e33776d41ull, 0x2af7398005aaa5c7ull, 0x44db015024623547ull, 0x9c15f73e62a76ae2ull,
     0x75834465489c0c89ull, 0x3290ac3a203001bfull, 0x0fbbad1f61042279ull, 0xe83a908ff2fb60caull,
     0x0d7e765d58755c10ull, 0x1a083822ceafe02dull, 0x9605d5f0e25ec3b0ull, 0xd021ff5cd13a2ed5ull,
@@ -199,32 +202,41 @@ static constexpr uint64_t random64[781] = {
     0x0c335248857fa9e7ull, 0x0a9c32d5eae45305ull, 0xe6c42178c4bbb92eull, 0x71f1ce2490d20b07ull,
     0xf1bcc3d275afe51aull, 0xe728e8c83c334074ull, 0x96fbf83a12884624ull, 0x81a1549fd6573da5ull,
     0x5fa7867caf35e149ull, 0x56986e2ef3ed091bull, 0x917f1dd5f8886c61ull, 0xd20d8c88c8ffe65full,
+   
+    // castling
+
     0x31d71dce64b2c310ull, 0xf165b587df898190ull, 0xa57e6339dd2cf3a0ull, 0x1ef6e6dbb1961ec9ull,
+
+    // en passant
+
     0x70cc73d90bc26e24ull, 0xe21a6b35df0c3ad7ull, 0x003a93d8b2806962ull, 0x1c99ded33cb890a1ull,
     0xcf3145de0add4289ull, 0xd0e4427a5514fb72ull, 0x77c621cc9fb3a483ull, 0x67a34dac4356550bull,
+
+    // side
+
     0xf8d626aaaf278509ull
 };
 
-static constexpr int KeyPieceIndex  =   0;
-static constexpr int KeyCastleIndex = 768;
-static constexpr int KeyEpIndex     = 772;
-static constexpr int KeySideIndex   = 780;
+static constexpr int HashPieceIndex  =   0;
+static constexpr int HashCastleIndex = 768;
+static constexpr int HashEpIndex     = 772;
+static constexpr int HashSideIndex   = 780;
 
-static uint64_t KeyCastleFast[16];
+static uint64_t HashCastleFast[16];
 
 void init()
 {
     for (int flags = 0; flags < 16; flags++) {
-        uint64_t key = 0;
+        uint64_t hash = 0;
 
-        // modified indices to match polyglot
+        // modified to match polyglot
 
-        if (flags & 1) key ^= random64[KeyCastleIndex + 0];
-        if (flags & 2) key ^= random64[KeyCastleIndex + 2];
-        if (flags & 4) key ^= random64[KeyCastleIndex + 1];
-        if (flags & 8) key ^= random64[KeyCastleIndex + 3];
+        if (flags & 1) hash ^= random64[HashCastleIndex + 0];
+        if (flags & 4) hash ^= random64[HashCastleIndex + 1];
+        if (flags & 2) hash ^= random64[HashCastleIndex + 2];
+        if (flags & 8) hash ^= random64[HashCastleIndex + 3];
 
-        KeyCastleFast[flags] = key;
+        HashCastleFast[flags] = hash;
     }
 }
 
@@ -237,18 +249,18 @@ uint64_t hash_piece(int piece, int sq)
 
     assert(is_sq64(sq64));
     
-    // modified indices to match polyglot
+    // modified to match polyglot
 
     int index = (piece ^ 1) * 64 + sq64;
 
-    return random64[KeyPieceIndex + index];
+    return random64[HashPieceIndex + index];
 }
 
 uint64_t hash_castle(int flags)
 {
     assert(flags >= 0 && flags < 16);
 
-    return KeyCastleFast[flags];
+    return HashCastleFast[flags];
 }
 
 uint64_t hash_ep(int sq)
@@ -256,17 +268,21 @@ uint64_t hash_ep(int sq)
     assert(is_sq88(sq));
 
     int file = sq88_file(sq);
-
+    
     assert(file_is_ok(file));
+    
+    [[maybe_unused]] int rank = sq88_rank(sq);
 
-    return random64[KeyEpIndex + file];
+    assert(rank == Rank3 || rank == Rank6);
+
+    return random64[HashEpIndex + file];
 }
 
 uint64_t hash_side(int side)
 {
     assert(Piece::side_is_ok(side));
 
-    return side == Piece::White ? random64[KeySideIndex] : 0;
+    return side == Piece::White ? random64[HashSideIndex] : 0;
 }
 
 }

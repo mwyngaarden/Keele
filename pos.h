@@ -34,8 +34,6 @@ public:
 
     int is_ok(bool in_check = true) const;
 
-    bool move_was_legal() const;
-
     void   note_move(Gen::Move& move) const;
 
     void   make_move(const Gen::Move& move,       Gen::Undo& undo);

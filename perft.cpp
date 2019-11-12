@@ -11,8 +11,6 @@
 #include "pos.h"
 using namespace std;
 
-vector<Gen::Move> move_stack;
-
 string move_to_string(const Gen::Move& move)
 {
     ostringstream oss;
@@ -61,8 +59,8 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
 
+    /*
     Perft("rnbq1bnr/pppp1ppp/3k4/3Pp3/8/1P6/P1P1PPPP/RNBQKBNR w KQ - 1 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-
     Perft("8/2p5/3p4/1P6/K3Pprk/1R6/6P1/8 b - e3 0 3", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("1R6/8/7k/4pPp1/8/4K3/5R2/8 w - g6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("8/6p1/5k2/4pP2/8/8/1Q3Q2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
@@ -70,6 +68,7 @@ std::vector<Perft> Fens {
     Perft("8/6p1/5k2/4pP2/8/8/1R3B2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("8/6p1/5k2/4pP2/8/8/1B3R2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
     Perft("rnbqkbnr/p3pppp/3p4/1Pp5/Q7/8/PP1PPPPP/RNB1KBNR w KQkq c6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    */
 
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
@@ -94,11 +93,7 @@ static int64_t perft(Position& pos,
                      int64_t& rev_checks,
                      int64_t& dir_rev_checks,
                      int64_t& rev_rev_checks,
-                     int64_t& ep,
-                     int64_t& mates,
-                     int64_t& castles,
-                     int64_t& captures,
-                     int64_t& promos
+                     int64_t& mates
         );
 
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
@@ -109,15 +104,10 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
     int64_t rev_checks = 0;
     int64_t dir_rev_checks = 0;
     int64_t rev_rev_checks = 0;
-    int64_t ep = 0;
     int64_t mates = 0;
-    int64_t castles = 0;
-    int64_t captures = 0;
-    int64_t promos = 0;
-
     int64_t nodes_diff = 0;
 
-    for (int i = 0; i < Fens.size(); i++) {
+    for (int i = 0; i < int(Fens.size()); i++) {
         if (pos != -1 && i != pos)
             continue;
 
@@ -131,11 +121,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         rev_checks = 0;
         dir_rev_checks = 0;
         rev_rev_checks = 0;
-        ep = 0;
         mates = 0;
-        castles = 0;
-        captures = 0;
-        promos = 0;
 
         Position pos(pp.fen);
 
@@ -153,12 +139,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
                                    rev_checks,
                                    dir_rev_checks,
                                    rev_rev_checks,
-                                   ep,
-                                   mates,
-                                   castles,
-                                   captures,
-                                   promos
-                );
+                                   mates);
     
         auto t1 = chrono::system_clock::now();
 
@@ -185,68 +166,24 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 
         cout << endl;
         
-        cout << "\ttotal checks: "      << total_checks      << endl;
-        cout << "\tdir checks: "        << dir_checks        << endl;
-        cout << "\trev checks: "        << rev_checks        << endl;
-        cout << "\tdir rev checks: "    << dir_rev_checks    << endl;
-        cout << "\trev rev checks: "    << rev_rev_checks    << endl;
-        cout << "\tdouble checks: "     << double_checks     << endl;
-        cout << "\tcumulative: "        << cum_checks           << endl;
+        cout << "\tmates: "             << mates            << endl;
+        cout << "\ttotal checks: "      << total_checks     << endl;
+        cout << "\tdir checks: "        << dir_checks       << endl;
+        cout << "\trev checks: "        << rev_checks       << endl;
+        cout << "\tdir rev checks: "    << dir_rev_checks   << endl;
+        cout << "\trev rev checks: "    << rev_rev_checks   << endl;
+        cout << "\tdouble checks: "     << double_checks    << endl;
+        cout << "\tcumulative: "        << cum_checks       << endl;
         cout << "\tdiff checks: "       << total_checks - cum_checks;
 
         if (total_checks != cum_checks) cout << " !!!!!!!!!!!!!!!!";
 
         cout << endl;
-
-        cout << "\tep: "         << ep                       << endl;
-        cout << "\tmates: "      << mates                    << endl;
-        cout << "\tcastles: "    << castles                  << endl;
-        cout << "\tcaptures: "   << captures                 << endl;
-        cout << "\tpromos: "     << promos                   << endl;
-
-        cout << endl;
     }
 
-    cout << '\n';
+    cout << endl;
 
     return nodes;
-}
-
-bool is_mate(Position& pos)
-{
-    Gen::Move::List moves;
-
-    Gen::gen_pseudo_moves(moves, pos);
-
-    for (const Gen::Move& m : moves) {
-        Gen::Undo undo;
-
-        pos.make_move(m, undo);
-
-        int side = pos.side();
-
-        bool legal = !pos.side_attacks(side, pos.king_sq(side ^ 1));
-
-        pos.unmake_move(m, undo);
-
-        if (legal) return false;
-    }
-
-    return true;
-}
-
-static string dump_move_stack()
-{
-    ostringstream oss;
-
-    for (int i = 0; i < move_stack.size(); i++) {
-        if (i > 0)
-            oss << ' ';
-
-        oss << move_to_string(move_stack[i]);
-    }
-
-    return oss.str();
 }
 
 int64_t perft(Position& pos,
@@ -257,40 +194,19 @@ int64_t perft(Position& pos,
               int64_t& rev_checks,
               int64_t& dir_rev_checks,
               int64_t& rev_rev_checks,
-              int64_t& ep,
-              int64_t& mates,
-              int64_t& castles,
-              int64_t& captures,
-              int64_t& promos
-        )
+              int64_t& mates
+              )
 {
     if (depth == 0) {
-        //bool lm_check = pos.last_move().is_check();
-        //bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
+        bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
 
-        //bool mate = is_mate(pos);
-        bool mate = false;
-
-        mates += mate;
-
-        if (!mate) {
-
-            //if (lm_check != sa_check) cout << dump_move_stack() << endl;
-
-            if (pos.last_move().is_rev_rev_check()) cout << dump_move_stack() << endl;
-
-            //total_checks        += sa_check;
-            dir_checks          += pos.last_move().is_dir_check();
-            rev_checks          += pos.last_move().is_rev_check();
-            dir_rev_checks      += pos.last_move().is_dir_rev_check();
-            rev_rev_checks      += pos.last_move().is_rev_rev_check();
-
-        }
-
-        ep                  += pos.last_move().is_ep();
-        castles             += pos.last_move().is_castle();
-        captures            += pos.last_move().is_capture();
-        promos              += pos.last_move().is_promo();
+        total_checks        += sa_check;
+        
+        //total_checks        += pos.last_move().is_check();
+        dir_checks          += pos.last_move().is_dir_check();
+        rev_checks          += pos.last_move().is_rev_check();
+        dir_rev_checks      += pos.last_move().is_dir_rev_check();
+        rev_rev_checks      += pos.last_move().is_rev_rev_check();
 
         return 1;
     }
@@ -298,27 +214,19 @@ int64_t perft(Position& pos,
     Gen::Move::List moves;
 
     int64_t legal_moves = 0;
-    
-    int64_t total_moves = depth == 1 || depth == 2 
-                        ? Gen::gen_pawn_moves(moves, pos)
-                        : Gen::gen_pseudo_moves(moves, pos);
-
     //int64_t total_moves = Gen::gen_pseudo_moves(moves, pos);
-
-    for (Gen::Move& m : moves) pos.note_move(m);
+    
+    Gen::gen_pseudo_moves(moves, pos);
 
     //if (depth == 1) return total_moves;
+    
+    for (Gen::Move& m : moves) pos.note_move(m);
 
     for (const Gen::Move& m : moves) {
-        if (depth == 2 && !m.is_double()) continue;
-        if (depth == 1 && (!m.is_ep() || !m.is_check())) continue;
-
         Gen::Undo undo;
 
         pos.make_move(m, undo);
             
-        move_stack.push_back(m);
-
         int side = pos.side();
 
         if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
@@ -331,23 +239,17 @@ int64_t perft(Position& pos,
                                    rev_checks,
                                    dir_rev_checks,
                                    rev_rev_checks,
-                                   ep,
-                                   mates, 
-                                   castles, 
-                                   captures,
-                                   promos);
+                                   mates);
 
             legal_moves += pmoves;
         }
         else
             ++illegal_moves;
 
-        move_stack.pop_back();
-
         pos.unmake_move(m, undo);
     }
 
-    // mates += depth == 1 && !legal_moves;
+    mates += depth == 1 && !legal_moves;
 
     return legal_moves;
 }

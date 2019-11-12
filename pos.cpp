@@ -13,7 +13,7 @@
 #include "string.h"
 using namespace std;
 
-constexpr bool HashEnabled = false;
+constexpr bool HashEnabled = true;
 
 void Position::init()
 {
@@ -85,7 +85,6 @@ Position::Position(const string& fen)
     if (ep_sq != "-") {
         ep_sq_ = san_to_sq88(ep_sq);
 
-        // TODO: or throw?
         assert(is_sq88(ep_sq_));
     }
 
@@ -102,11 +101,11 @@ Position::Position(const string& fen)
     // set last move
 
     if (ep_sq_ != SquareNone) {
-        Piece::Piece256 pawn256 = Piece::BlackPawn256 >> side_;
-
         int inc = pawn_inc(Piece::flip_side(side_));
+
+        [[maybe_unused]] Piece::Piece256 opawn = Piece::make_pawn(Piece::flip_side(side_));
         
-        assert(square(ep_sq_ + inc) == pawn256);
+        assert(square(ep_sq_ + inc) == opawn);
 
         last_move_ = Gen::Move(ep_sq_ - inc, ep_sq_ + inc) | Gen::Move::DoubleFlag;
     }
@@ -117,8 +116,6 @@ Position::Position(const string& fen)
 
     int checker1 = SquareNone;
     int checker2 = SquareNone;
-
-    // TODO: use PieceList12
 
     for (int p12 = Piece::WhitePawn12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
         for (int orig : piece_list(p12)) {
@@ -159,8 +156,7 @@ Position::Position(const string& fen)
 
     if (HashEnabled) {
         key_ ^= Hash::hash_castle(flags_);
-        if (ep_is_valid())
-            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
         key_ ^= Hash::hash_side(side_);
     }
 
@@ -223,8 +219,7 @@ string Position::to_fen() const
     return oss.str();
 }
 
-// TODO: can we remove the piece temporarily?
-
+// TODO: optimize
 void Position::note_move(Gen::Move& move) const
 {
     int mside = side_;
@@ -238,7 +233,7 @@ void Position::note_move(Gen::Move& move) const
     Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
 
     Piece::Piece256 mpawn = Piece::make_pawn(mside);
-    Piece::Piece256 opawn = Piece::make_pawn(oside);
+    //Piece::Piece256 opawn = Piece::make_pawn(oside);
 
     Piece::Piece256 type256;
     Piece::Piece256 piece256;
@@ -271,7 +266,7 @@ void Position::note_move(Gen::Move& move) const
     }
 
     if (move.is_ep()) {
-        const int cap = dest - pawn_inc(mside);
+        int cap = dest - pawn_inc(mside);
 
         // direct check?
 
@@ -364,7 +359,7 @@ ep_hack:
         goto revealed_check;
     }
 
-direct_check:
+// direct_check:
 
     piece256 = square(orig);
 
@@ -430,8 +425,7 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 
     if (HashEnabled) {
         key_ ^= Hash::hash_castle(flags_);
-        if (ep_is_valid())
-            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
         key_ ^= Hash::hash_side(side_);
     }
 
@@ -479,12 +473,11 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
 
     if (HashEnabled) {
         key_ ^= Hash::hash_castle(flags_);
-        if (ep_is_valid())
-            key_ ^= Hash::hash_ep(ep_sq_);
+        key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
         key_ ^= Hash::hash_side(side_);
     }
 
-    //assert(is_ok(false) == 0);
+    assert(is_ok(false) == 0);
 }
 
 void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
@@ -533,7 +526,7 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
 
     side_ = Piece::flip_side(side_);
 
-    //assert(is_ok() == 0);
+    assert(is_ok() == 0);
 }
 
 int Position::is_ok(bool in_check) const
@@ -598,6 +591,25 @@ int Position::is_ok(bool in_check) const
 
     if (in_check && side_attacks(side_, king_sq(Piece::flip_side(side_))))
         return __LINE__;
+
+    if (flags_ < 0 && flags_ >= 16)
+        return __LINE__;
+
+    if (ep_sq_ != SquareNone) {
+        int rank = sq88_rank(ep_sq_, Piece::flip_side(side_));
+
+        if (rank != Rank3)
+            return __LINE__;
+
+        Piece::Piece256 opawn = Piece::make_pawn(Piece::flip_side(side_));
+
+        int inc = pawn_inc(Piece::flip_side(side_));
+
+        if (square(ep_sq_ + inc) != opawn)
+            return __LINE__;
+    }
+
+    //if (calc_key() != key_) return __LINE__;
 
     // int flags_ = 0;
     // int ep_sq_ = SquareNone;
@@ -668,32 +680,6 @@ void Position::mov_piece(int orig, int dest)
     }
 
     swap(square(orig), square(dest));
-}
-
-bool Position::move_was_legal() const
-{
-    //assert(is_ok(false) == 0);
-    assert(last_move_ != 0);
-
-    if (last_move_.is_castle())
-        return false;
-
-    int oside = side_;
-    int mside = Piece::flip_side(side_);
-    
-    int king = king_sq(mside);
-
-    int orig = last_move_.orig();
-    int dest = last_move_.dest();
-        
-    if (dest == king)
-        return !side_attacks(oside, king);
-
-    // TODO: optimize
-    //if (Gen::delta_type(mking, orig) & Piece::QueenFlags256)
-        return !side_attacks(oside, king);
-
-    //return true;
 }
 
 bool Position::side_attacks(int side, int dest) const
@@ -790,14 +776,13 @@ void Position::mark_pins()
 
     int king = king_sq();
 
-    int mside = side_;
+    //int mside = side_;
     int oside = Piece::flip_side(side_);
 
     //Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
     Piece::Piece256 oflag = Piece::BlackFlag256 >> oside;
 
     // FIXME: exclude king
-
     for (int orig : piece_list(Piece::WhiteBishop12 + oside)) {
         if (!(Gen::delta_type(orig, king) & Piece::BishopFlag256))
             continue;
@@ -879,8 +864,7 @@ uint64_t Position::calc_key() const
     }
 
     key ^= Hash::hash_castle(flags_);
-    if (ep_is_valid())
-        key ^= Hash::hash_ep(ep_sq_);
+    key ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
     key ^= Hash::hash_side(side_);
 
     return key;

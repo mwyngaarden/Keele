@@ -11,13 +11,14 @@ SRC_PATH = .
 LIBS =
 # General compiler flags
 COMPILE_FLAGS = -std=c++17 -Wall -Wextra -pedantic
-# Additional release-specific flags
 
-RCOMPILE_FLAGS = -O3 -march=native -flto -DNDEBUG
+# Additional release-specific flags
+RCOMPILE_FLAGS = -O3 -march=native -flto -DNDEBUG -fno-exceptions -fno-rtti
 #RCOMPILE_FLAGS = -DNDEBUG -O0 -ggdb3
 
 # Additional debug-specific flags
-DCOMPILE_FLAGS = -ggdb3
+DCOMPILE_FLAGS = -ggdb3 -O2 -flto -march=native
+
 # General linker settings
 LINK_FLAGS =
 # Additional release-specific linker settings

@@ -31,7 +31,7 @@ void validate_hash()
         Pos("rnbqkbnr/p1pppppp/8/8/P6P/R1p5/1P1PPPP1/1NBQKBNR b Kkq - 0 4", 0x5c3f9b829b279560ull)
     };
 
-    for (int i = 0; i < fens.size(); i++) {
+    for (size_t i = 0; i < fens.size(); i++) {
         Position pos(fens[i].fen);
         
         cout << hex;

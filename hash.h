@@ -7,7 +7,6 @@ namespace Hash {
 
     void init();
 
-    uint64_t hash_piece     (int side, int piece, int sq);
     uint64_t hash_piece     (int piece, int sq);
     uint64_t hash_castle    (int flags);
     uint64_t hash_ep        (int sq);
