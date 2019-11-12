@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <array>
+#include <bitset>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <utility>
@@ -116,7 +118,7 @@ Position::Position(const string& fen)
     int checker2 = SquareNone;
 
     for (int p12 = Piece::WhitePawn12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
-        for (int orig : piece_list(p12)) {
+        for (const int orig : piece_list(p12)) {
             if (piece_attacks(orig, king)) {
                 assert(checker2 == SquareNone);
                 
@@ -237,12 +239,6 @@ void Position::note_move(Gen::Move& move) const
     int inc;
     int sq;
 
-#if 0
-    if (orig == 53 && dest == 36) {
-        cout << "here" << endl;
-    }
-#endif
-
     // direct check only
 
     if (move.is_castle()) {
@@ -355,7 +351,7 @@ ep_hack:
         goto revealed_check;
     }
 
-// direct_check:
+    // direct check?
 
     piece256 = square(orig);
 
@@ -540,9 +536,9 @@ int Position::is_ok(bool in_check) const
         for (int piece = Piece::Pawn; piece <= Piece::King; piece++) {
             size_t type_count = 0;
 
-            int p12 = Piece::to_piece12(side, piece);
+            const int p12 = Piece::to_piece12(side, piece);
 
-            for (int sq : piece_list(p12)) {
+            for (const int sq : piece_list(p12)) {
                 if (!is_sq88(sq))
                     return __LINE__;
 
@@ -616,7 +612,7 @@ void Position::add_piece(int sq, Piece::Piece256 piece256, bool update_key)
     assert(is_empty(sq));
     assert(Piece::piece256_is_ok(piece256));
 
-    int p12 = Piece::to_piece12(piece256);
+    const int p12 = Piece::to_piece12(piece256);
 
     assert(Piece::piece12_is_ok(p12));
 
@@ -637,7 +633,7 @@ void Position::rem_piece(int sq, bool update_key)
     
     assert(Piece::piece256_is_ok(piece256));
 
-    int p12 = Piece::to_piece12(piece256);
+    const int p12 = Piece::to_piece12(piece256);
     
     assert(Piece::piece12_is_ok(p12));
     
@@ -660,7 +656,7 @@ void Position::mov_piece(int orig, int dest, bool update_key)
 
     assert(Piece::piece256_is_ok(piece256));
 
-    int p12 = Piece::to_piece12(piece256);
+    const int p12 = Piece::to_piece12(piece256);
 
     assert(Piece::piece12_is_ok(p12));
     
@@ -693,12 +689,12 @@ bool Position::side_attacks(int side, int dest) const
         if (int orig = dest - inc + 1; square(orig) == pawn256) return true;
     }
 
-    for (int orig : piece_list(Piece::WhiteKnight12 + side)) {
+    for (const int orig : piece_list(Piece::WhiteKnight12 + side)) {
         if (Gen::delta_type(orig, dest) & Piece::KnightFlag256)
             return true;
     }
 
-    for (int orig : piece_list(Piece::WhiteBishop12 + side)) {
+    for (const int orig : piece_list(Piece::WhiteBishop12 + side)) {
         if (!(Gen::delta_type(orig, dest) & Piece::BishopFlag256))
             continue;
 
@@ -711,7 +707,7 @@ bool Position::side_attacks(int side, int dest) const
             return true;
     }
 
-    for (int orig : piece_list(Piece::WhiteRook12 + side)) {
+    for (const int orig : piece_list(Piece::WhiteRook12 + side)) {
         if (!(Gen::delta_type(orig, dest) & Piece::RookFlag256))
             continue;
 
@@ -724,7 +720,7 @@ bool Position::side_attacks(int side, int dest) const
             return true;
     }
     
-    for (int orig : piece_list(Piece::WhiteQueen12 + side)) {
+    for (const int orig : piece_list(Piece::WhiteQueen12 + side)) {
         if (!(Gen::delta_type(orig, dest) & Piece::QueenFlags256))
             continue;
 
@@ -762,58 +758,23 @@ bool Position::piece_attacks(int orig, int dest) const
     return sq == orig;
 }
 
-void Position::mark_pins()
-{
-    pinned_.clear();
-
-    int king = king_sq();
-
-    //int mside = side_;
-    int oside = Piece::flip_side(side_);
-
-    //Piece::Piece256 mflag = Piece::WhiteFlag256 << mside;
-    Piece::Piece256 oflag = Piece::BlackFlag256 >> oside;
-
-    // FIXME: exclude king
-    for (int orig : piece_list(Piece::WhiteBishop12 + oside)) {
-        if (!(Gen::delta_type(orig, king) & Piece::BishopFlag256))
-            continue;
-
-        int inc = Gen::delta_inc(king, orig);
-        int sq = king;
-
-        do { sq += inc; } while (square(sq) == Piece::PieceNone256);
-
-        assert(is_sq88(sq));
-
-        if (square(sq) & oflag)
-            continue;
-
-        do { orig -= inc; } while (square(orig) == Piece::PieceNone256);
-
-        assert(is_sq88(orig));
-
-        if (orig == sq) {
-            // pinned
-        }
-    }
-}
-
 string Position::dump() const
 {
     ostringstream oss;
 
-    oss << "FEN: " << to_fen() << endl;
-    oss << "key: " << hex << calc_key() << endl;
-    oss << endl;
-    oss << "    +---+---+---+---+---+---+---+---+" << endl;
+    oss << "FEN: " << to_fen()
+        << endl
+        << "Key: 0x" << setfill('0') << setw(16) << hex << key_
+        << endl
+        << endl
+        << "    +---+---+---+---+---+---+---+---+"
+        << endl;
    
     for (int rank = 7; rank >= 0; rank--) {
         oss << ' ' << (rank + 1) << "  |";
 
         for (int file = 0; file <= 7; file++) { 
             Piece::Piece256 piece256 = square(to_sq88(file, rank));
-
 
             if (Piece::is_white(piece256))
                 oss << '-' << Piece::to_char(Piece::to_piece(piece256)) << '-';
@@ -828,10 +789,13 @@ string Position::dump() const
             oss << '|';
         }
 
-        oss << endl << "    +---+---+---+---+---+---+---+---+" << endl;
+        oss << endl
+            << "    +---+---+---+---+---+---+---+---+"
+            << endl;
     }
 
-    oss << "      a   b   c   d   e   f   g   h  " << endl;
+    oss << "      a   b   c   d   e   f   g   h  "
+        << endl;
 
     return oss.str();
 }
@@ -873,3 +837,48 @@ bool Position::ep_is_valid() const
 
     return square(sq - 1) == mpawn || square(sq + 1) == mpawn;
 }
+
+void Position::mark_pins(bitset<128>& pins) const
+{
+    assert(pins.none());
+
+    const int king = king_sq();
+
+    const int mside = side_;
+    const int oside = Piece::flip_side(side_);
+
+    const Piece::Piece256 mflag = Piece::make_flag(mside);
+    const Piece::Piece256 oflag = Piece::make_flag(oside);
+
+    for (int p12 = Piece::WhiteBishop12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
+        for (const int orig : piece_list_[p12]) {
+            assert(is_sq88(orig));
+
+            if (!(square(orig) & Gen::delta_type(king, orig)))
+                continue;
+
+            const int inc = Gen::delta_inc(king, orig);
+            int sq1 = king;
+            int sq2 = orig;
+
+            do { sq1 += inc; } while (square(sq1) == Piece::PieceNone256);
+            
+            assert(is_sq88(sq1));
+
+            if (!(square(sq1) & mflag))
+                continue;
+
+            do { sq2 -= inc; } while (square(sq2) == Piece::PieceNone256);
+
+            assert(is_sq88(sq2));
+
+            if (sq1 != sq2)
+                continue;
+
+            assert(!pins.test(sq1));
+
+            pins.set(sq1);
+        }
+    }
+}
+

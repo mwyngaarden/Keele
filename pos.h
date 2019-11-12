@@ -1,6 +1,7 @@
 #ifndef POS_H
 #define POS_H
 
+#include <bitset>
 #include <string>
 #include <cassert>
 #include <cstdint>
@@ -42,7 +43,7 @@ public:
     uint64_t      key() const { return key_; }
     uint64_t calc_key() const;
 
-    void mark_pins();
+    void mark_pins(std::bitset<128>& pins) const;
 
     void add_piece(int sq, Piece::Piece256 p, bool update_key);
     void rem_piece(int sq, bool update_key);
@@ -159,7 +160,6 @@ private:
     Gen::Move last_move_ = 0;
 
     Piece::List piece_list_[12];
-    Piece::List pinned_;
 };
 
 #endif

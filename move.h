@@ -72,6 +72,8 @@ namespace Gen {
         inline bool is_check()          const { return data_ & CheckFlags; }
         inline bool is_special()        const { return data_ & (EPFlag | PromoFlags | CastleFlag); }
 
+        inline bool is_double_check()   const { return is_dir_rev_check() || is_rev_rev_check(); }
+
     private:
         uint32_t data_;
     };

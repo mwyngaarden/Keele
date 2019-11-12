@@ -93,8 +93,7 @@ static int64_t perft(Position& pos,
                      int64_t& rev_checks,
                      int64_t& dir_rev_checks,
                      int64_t& rev_rev_checks,
-                     int64_t& mates
-        );
+                     int64_t& mates);
 
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 {
@@ -194,15 +193,14 @@ int64_t perft(Position& pos,
               int64_t& rev_checks,
               int64_t& dir_rev_checks,
               int64_t& rev_rev_checks,
-              int64_t& mates
-              )
+              int64_t& mates)
 {
     if (depth == 0) {
-        //bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
+        bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
 
-        //total_checks        += sa_check;
+        total_checks        += sa_check;
         
-        total_checks        += pos.last_move().is_check();
+        //total_checks        += pos.last_move().is_check();
         dir_checks          += pos.last_move().is_dir_check();
         rev_checks          += pos.last_move().is_rev_check();
         dir_rev_checks      += pos.last_move().is_dir_rev_check();
@@ -220,7 +218,7 @@ int64_t perft(Position& pos,
 
     //if (depth == 1) return total_moves;
     
-    //for (Gen::Move& m : moves) pos.note_move(m);
+    for (Gen::Move& m : moves) pos.note_move(m);
 
     for (const Gen::Move& m : moves) {
         Gen::Undo undo;

@@ -1,3 +1,4 @@
+#include <bitset>
 #include <iostream>
 #include "gen.h"
 #include "move.h"
@@ -17,8 +18,8 @@ namespace Gen {
     static void gen_rook_moves     (Move::List& moves, const Position& pos, int orig);
     static void gen_queen_moves    (Move::List& moves, const Position& pos, int orig);
 
-    static void gen_king_moves     (Move::List& moves, const Position& pos, int orig);
-    static void gen_king_castles   (Move::List& moves, const Position& pos, int orig);
+    static void gen_king_castles   (Move::List& moves, const Position& pos);
+    static void gen_king_moves     (Move::List& moves, const Position& pos);
     
     void init()
     {
@@ -83,12 +84,10 @@ namespace Gen {
             gen_queen_moves(moves, pos, orig);
 
         {
-            const int king = pos.king_sq();
-            
-            gen_king_moves(moves, pos, king);
+            gen_king_moves(moves, pos);
 
             if (!pos.last_move().is_check())
-                gen_king_castles(moves, pos, king);
+                gen_king_castles(moves, pos);
         }
 
         return moves.size();
@@ -251,60 +250,133 @@ namespace Gen {
         }
     }
 
-    void gen_king_moves(Move::List& moves, const Position& pos, int orig)
+    void gen_king_moves(Move::List& moves, const Position& pos)
     {
-        assert(is_sq88(orig));
-        assert(pos.is_me(orig));
-        assert(pos.is_piece(orig, Piece::King));
+        int king = pos.king_sq();
+
+        assert(is_sq88(king));
+        assert(pos.is_me(king));
+        assert(pos.is_piece(king, Piece::King));
         
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
         for (auto inc : piece_incs[Piece::King]) {
-            int dest = orig;
+            int dest = king;
 
             piece = pos[dest += inc];
 
             if (piece == Piece::PieceNone256)
-                moves.add(Move(orig, dest));
+                moves.add(Move(king, dest));
             else if (piece & ocolor)
-                moves.add(Move(orig, dest, piece));
+                moves.add(Move(king, dest, piece));
         }
     }
 
-    //size_t gen_king_evasions(Move::List& moves, const Position& pos)
-    size_t gen_king_evasions(Move::List& moves, const Position&)
+    size_t gen_king_evasions(Move::List& moves, const Position& pos)
     {
+        const Move& lm = pos.last_move();
+        
+        assert(lm.is_check());
+
+        const int king = pos.king_sq();
+        const int mside = pos.side();
+        const int oside = Piece::flip_side(mside);
+
+        assert(pos.side_attacks(oside, king));
+        
+        Piece::Piece256 mflag = Piece::make_flag(mside);
+
+        if (lm.is_double_check()) {
+            assert(lm.is_dir_rev_check() || lm.is_rev_rev_check());
+
+            const int inc_direct = Piece::is_pawn(lm.dest()) ? 0 : delta_inc(lm.dest(), king);
+            const int inc_reveal = delta_inc(lm.orig(), king);
+
+            for (auto inc : piece_incs[Piece::King]) {
+                if (inc == inc_direct || inc == inc_reveal)
+                    continue;
+
+                const int dest = king + inc;
+
+                if (!is_sq88(dest))
+                    continue;
+                if (pos[dest] & mflag)
+                    continue;
+                if (!pos.side_attacks(oside, dest))
+                    moves.add(Move(king, dest, pos[dest]));
+            }
+
+            return moves.size();
+        }
+
+        assert(!lm.is_double_check());
+
+        int dest;
+        int inc;
+
+        if (lm.is_dir_check()) {
+            dest = lm.is_castle() ? (lm.orig() + lm.dest()) >> 1 : lm.dest();
+
+            assert(is_sq88(dest));
+            assert(pos.is_op(dest));
+            assert(Piece::is_rook(pos[dest]));
+
+            inc = delta_inc(dest, king);
+            
+            assert(inc != 0);
+        }
+        else {
+            inc = delta_inc(lm.orig(), king);
+
+            assert(inc != 0);
+
+            dest = lm.orig();
+
+            do { dest -= inc; } while (pos[dest] == Piece::PieceNone256);
+
+            assert(is_sq88(dest));
+            assert(pos.is_op(dest));
+        }
+       asdf 
+        const Piece::Piece256 mpawn = Piece::make_pawn(mside);
+
+        bitset<128> pinned;
+
+        // TODO: mark pins
+
         return moves.size();
     }
 
-    void gen_king_castles(Move::List& moves, const Position& pos, int orig)
+    void gen_king_castles(Move::List& moves, const Position& pos)
     {
-        assert(is_sq88(orig));
-        assert(pos.is_me(orig));
-        assert(pos.is_piece(orig, Piece::King));
+        int king = pos.king_sq();
+
+        assert(is_sq88(king));
+        assert(pos.is_me(king));
+        assert(pos.is_piece(king, Piece::King));
         
         if (pos.can_castle_k()) {
-            if (   pos.is_empty(orig + 1)
-                && pos.is_empty(orig + 2)) {
+            if (   pos.is_empty(king + 1)
+                && pos.is_empty(king + 2)) {
 
-                bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig + 1)
-                          || pos.side_attacks(Piece::flip_side(pos.side()), orig + 2);
+                bool check = pos.side_attacks(Piece::flip_side(pos.side()), king + 1)
+                          || pos.side_attacks(Piece::flip_side(pos.side()), king + 2);
 
                 if (!check)
-                    moves.add(Move(orig, orig + 2) | Gen::Move::CastleFlag);
+                    moves.add(Move(king, king + 2) | Gen::Move::CastleFlag);
             }
         }
         if (pos.can_castle_q()) {
-            if (   pos.is_empty(orig - 1)
-                && pos.is_empty(orig - 2)
-                && pos.is_empty(orig - 3)) {
+            if (   pos.is_empty(king - 1)
+                && pos.is_empty(king - 2)
+                && pos.is_empty(king - 3)) {
 
-                bool check = pos.side_attacks(Piece::flip_side(pos.side()), orig - 1)
-                          || pos.side_attacks(Piece::flip_side(pos.side()), orig - 2);
+                bool check = pos.side_attacks(Piece::flip_side(pos.side()), king - 1)
+                          || pos.side_attacks(Piece::flip_side(pos.side()), king - 2);
 
                 if (!check)
-                    moves.add(Move(orig, orig - 2) | Gen::Move::CastleFlag);
+                    moves.add(Move(king, king - 2) | Gen::Move::CastleFlag);
             }
         }
     }
