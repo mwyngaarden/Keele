@@ -20,6 +20,8 @@ namespace Gen {
 
     static void gen_king_castles   (Move::List& moves, const Position& pos);
     static void gen_king_moves     (Move::List& moves, const Position& pos);
+
+    static void gen_nbrq_moves     (Move::List& moves, const Position& pos, int dest, const bitset<128>& pins);
     
     void init()
     {
@@ -145,7 +147,7 @@ namespace Gen {
         else {
             if (int ep_sq = pos.ep_sq(); rank == Rank5 && ep_sq != SquareNone) {
                 if (abs(sq88_file(orig) - sq88_file(ep_sq)) == 1)
-                    moves.add(Move(orig, pos.ep_sq(), pos[ep_sq - inc]) | Move::EPFlag);
+                    moves.add(Move(orig, ep_sq, pos[ep_sq - inc]) | Move::EPFlag);
             }
 
             if (int dest = orig + inc - 1; pos[dest] & oflag)
@@ -320,7 +322,7 @@ namespace Gen {
 
             assert(is_sq88(dest));
             assert(pos.is_op(dest));
-            assert(Piece::is_rook(pos[dest]));
+            assert(!lm.is_castle() || Piece::is_rook(pos[dest]));
 
             inc = delta_inc(dest, king);
             
@@ -338,12 +340,128 @@ namespace Gen {
             assert(is_sq88(dest));
             assert(pos.is_op(dest));
         }
-       asdf 
+       
+        // TODO: is passing bitset reference faster then returning a bitset?
+        bitset<128> pins;
+
+        pos.mark_pins(pins);
+        
         const Piece::Piece256 mpawn = Piece::make_pawn(mside);
+        
+        const int pinc = pawn_inc(mside);
 
-        bitset<128> pinned;
+        int orig;
 
-        // TODO: mark pins
+        // promotions
+        
+        if (sq88_rank(dest, mside) == Rank8) {
+            orig = dest - pinc - 1;
+
+            //if (pos[orig] == mpawn && !pins.test(orig)) {
+            if (pos[orig] == mpawn) {
+                Move m(orig, dest, pos[dest]);
+
+                moves.add(m | Move::PromoKnightFlag);
+                moves.add(m | Move::PromoBishopFlag);
+                moves.add(m | Move::PromoRookFlag);
+                moves.add(m | Move::PromoQueenFlag);
+            }
+
+            orig = dest - pinc + 1;
+
+            //if (pos[orig] == mpawn && !pins.test(orig)) {
+            if (pos[orig] == mpawn) {
+                Move m(orig, dest, pos[dest]);
+
+                moves.add(m | Move::PromoKnightFlag);
+                moves.add(m | Move::PromoBishopFlag);
+                moves.add(m | Move::PromoRookFlag);
+                moves.add(m | Move::PromoQueenFlag);
+            }
+        }
+        else {
+            orig = dest - pinc - 1;
+
+            //if (pos[orig] == mpawn && !pins.test(orig))
+            if (pos[orig] == mpawn)
+                moves.add(Move(orig, dest, pos[dest]));
+
+            orig = dest - pinc + 1;
+
+            //if (pos[orig] == mpawn && !pins.test(orig))
+            if (pos[orig] == mpawn)
+                moves.add(Move(orig, dest, pos[dest]));
+        }
+
+        if (lm.is_double() && lm.is_dir_check()) {
+            // TODO: does this make more sense than using pos.ep_sq()?
+            int ep_sq = lm.dest() + pinc;
+
+            orig = dest - 1;
+
+            //if (pos[orig] == mpawn && !pins.test(orig)) {
+            if (pos[orig] == mpawn) {
+                //if (is_pinned(king, orig, ep_sq))
+                
+                moves.add(Move(orig, ep_sq, pos[lm.dest()]) | Move::EPFlag);
+            }
+
+            orig = dest + 1;
+            
+            //if (pos[orig] == mpawn && !pins.test(orig)) {
+            if (pos[orig] == mpawn) {
+                //if (is_pinned(king, orig, ep_sq))
+ 
+                moves.add(Move(orig, ep_sq, pos[lm.dest()]) | Move::EPFlag);
+            }
+        }
+
+        gen_nbrq_moves(moves, pos, dest, pins);
+
+        while ((dest += inc) != king) {
+            orig = dest - pinc;
+
+            if (pos[orig] == mpawn) {
+                Move m(orig, dest);
+
+                if (sq88_rank(dest, mside) == Rank8) {
+                    moves.add(m | Move::PromoKnightFlag);
+                    moves.add(m | Move::PromoBishopFlag);
+                    moves.add(m | Move::PromoRookFlag);
+                    moves.add(m | Move::PromoQueenFlag);
+                }
+                else
+                    moves.add(m);
+            }
+
+            if (pos[orig] == Piece::PieceNone256) {
+                if (sq88_rank(dest, mside) == Rank4) {
+                    orig -= pinc;
+
+                    if (pos[orig] == mpawn)
+                        moves.add(Move(orig, dest) | Move::DoubleFlag);
+                }
+            }
+
+            gen_nbrq_moves(moves, pos, dest, pins);
+        }
+
+        if (lm.is_dir_check() && Piece::is_pawn(pos[lm.dest()]))
+            inc = 0;
+
+        for (auto ki : piece_incs[Piece::King]) {
+            if (ki == inc)
+                continue;
+
+            dest = king + ki;
+
+            if (!is_sq88(dest))
+                continue;
+            if (pos[dest] & mflag)
+                continue;
+            if (!pos.side_attacks(oside, dest))
+                moves.add(Move(king, dest, pos[dest]));
+        }
 
         return moves.size();
     }
@@ -377,6 +495,78 @@ namespace Gen {
 
                 if (!check)
                     moves.add(Move(king, king - 2) | Gen::Move::CastleFlag);
+            }
+        }
+    }
+
+    void gen_nbrq_moves(Move::List& moves, const Position& pos, int dest, const bitset<128>& pins)
+    {
+        const int mside = pos.side();
+
+        for (const int orig : pos.piece_list(Piece::WhiteKnight12 + mside)) {
+            assert(is_sq88(orig));
+
+            if (pins.test(orig))
+                continue;
+
+            if (delta_type(orig, dest) & Piece::KnightFlag256)
+                moves.add(Move(orig, dest, pos[dest]));
+        }
+
+        for (const int orig : pos.piece_list(Piece::WhiteBishop12 + mside)) {
+            assert(is_sq88(orig));
+
+            if (pins.test(orig))
+                continue;
+
+            if ((delta_type(orig, dest) & Piece::BishopFlag256) == 0)
+                continue;
+
+            if (int inc = delta_inc(dest, orig); inc != 0) {
+                int sq = dest;
+
+                do { sq += inc; } while (pos[sq] == Piece::PieceNone256);
+
+                if (sq == orig)
+                    moves.add(Move(orig, dest, pos[dest]));
+            }
+        }
+
+        for (const int orig : pos.piece_list(Piece::WhiteRook12 + mside)) {
+            assert(is_sq88(orig));
+
+            if (pins.test(orig))
+                continue;
+
+            if ((delta_type(orig, dest) & Piece::RookFlag256) == 0)
+                continue;
+
+            if (int inc = delta_inc(dest, orig); inc != 0) {
+                int sq = dest;
+
+                do { sq += inc; } while (pos[sq] == Piece::PieceNone256);
+
+                if (sq == orig)
+                    moves.add(Move(orig, dest, pos[dest]));
+            }
+        }
+
+        for (const int orig : pos.piece_list(Piece::WhiteQueen12 + mside)) {
+            assert(is_sq88(orig));
+
+            if (pins.test(orig))
+                continue;
+
+            if ((delta_type(orig, dest) & Piece::QueenFlags256) == 0)
+                continue;
+
+            if (int inc = delta_inc(dest, orig); inc != 0) {
+                int sq = dest;
+
+                do { sq += inc; } while (pos[sq] == Piece::PieceNone256);
+
+                if (sq == orig)
+                    moves.add(Move(orig, dest, pos[dest]));
             }
         }
     }

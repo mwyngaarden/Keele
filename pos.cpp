@@ -848,7 +848,6 @@ void Position::mark_pins(bitset<128>& pins) const
     const int oside = Piece::flip_side(side_);
 
     const Piece::Piece256 mflag = Piece::make_flag(mside);
-    const Piece::Piece256 oflag = Piece::make_flag(oside);
 
     for (int p12 = Piece::WhiteBishop12 + oside; p12 <= Piece::BlackQueen12; p12 += 2) {
         for (const int orig : piece_list_[p12]) {

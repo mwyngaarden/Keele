@@ -212,10 +212,10 @@ int64_t perft(Position& pos,
     Gen::Move::List moves;
 
     int64_t legal_moves = 0;
-    //int64_t total_moves = Gen::gen_pseudo_moves(moves, pos);
+    int64_t total_moves = pos.last_move().is_check()
+                        ? Gen::gen_king_evasions(moves, pos)
+                        : Gen::gen_pseudo_moves(moves, pos);
     
-    Gen::gen_pseudo_moves(moves, pos);
-
     //if (depth == 1) return total_moves;
     
     for (Gen::Move& m : moves) pos.note_move(m);
