@@ -30,26 +30,26 @@ namespace Gen {
         type88[128 - 16 - 1] |= Piece::BlackPawnFlag256;
         type88[128 - 16 + 1] |= Piece::BlackPawnFlag256;
 
-        for (auto inc : piece_incs[Piece::Knight]) {
+        for (auto inc : KnightIncs) {
             inc88[128 + inc] = inc;
             type88[128 + inc] |= Piece::KnightFlag256;
         }
 
-        for (auto inc : piece_incs[Piece::Bishop]) {
+        for (auto inc : BishopIncs) {
             for (int i = 1; i <= 7; i++) {
                 inc88[128 + inc * i] = inc;
                 type88[128 + inc * i] |= Piece::BishopFlag256;
             }
         }
 
-        for (auto inc : piece_incs[Piece::Rook]) {
+        for (auto inc : RookIncs) {
             for (int i = 1; i <= 7; i++) {
                 inc88[128 + inc * i] = inc;
                 type88[128 + inc * i] |= Piece::RookFlag256;
             }
         }
 
-        for (auto inc : piece_incs[Piece::Queen])
+        for (auto inc : QueenIncs)
             type88[128 + inc] |= Piece::KingFlag256;
 
         for (int i = 0; i < 256; i++)
@@ -66,7 +66,7 @@ namespace Gen {
 
     size_t gen_pseudo_moves(Move::List& moves, const Position& pos)
     {
-        assert(pos.is_ok() == 0);
+        //assert(pos.is_ok() == 0);
 
         const int side = pos.side();
 
@@ -180,7 +180,7 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto inc : piece_incs[Piece::Knight]) {
+        for (auto inc : KnightIncs) {
             int dest = orig;
 
             piece = pos[dest += inc];
@@ -201,7 +201,7 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto inc : piece_incs[Piece::Bishop]) {
+        for (auto inc : BishopIncs) {
             int dest = orig;
 
             while ((piece = pos[dest += inc]) == Piece::PieceNone256)
@@ -221,7 +221,7 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto inc : piece_incs[Piece::Rook]) {
+        for (auto inc : RookIncs) {
             int dest = orig;
 
             while ((piece = pos[dest += inc]) == Piece::PieceNone256)
@@ -241,7 +241,7 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto inc : piece_incs[Piece::Queen]) {
+        for (auto inc : QueenIncs) {
             int dest = orig;
 
             while ((piece = pos[dest += inc]) == Piece::PieceNone256)
@@ -263,7 +263,7 @@ namespace Gen {
         Piece::Piece256 ocolor = Piece::BlackFlag256 >> pos.side();
         Piece::Piece256 piece;
 
-        for (auto inc : piece_incs[Piece::King]) {
+        for (auto inc : QueenIncs) {
             int dest = king;
 
             piece = pos[dest += inc];
@@ -295,7 +295,7 @@ namespace Gen {
             const int inc_direct = Piece::is_pawn(lm.dest()) ? 0 : delta_inc(lm.dest(), king);
             const int inc_reveal = delta_inc(lm.orig(), king);
 
-            for (auto inc : piece_incs[Piece::King]) {
+            for (auto inc : QueenIncs) {
                 if (inc == inc_direct || inc == inc_reveal)
                     continue;
 
@@ -330,6 +330,9 @@ namespace Gen {
         }
         else {
             inc = delta_inc(lm.orig(), king);
+
+            if (inc == 0)
+                cout << hex << uint32_t(lm) << endl;
 
             assert(inc != 0);
 
@@ -449,7 +452,7 @@ namespace Gen {
         if (lm.is_dir_check() && Piece::is_pawn(pos[lm.dest()]))
             inc = 0;
 
-        for (auto ki : piece_incs[Piece::King]) {
+        for (auto ki : QueenIncs) {
             if (ki == inc)
                 continue;
 

@@ -465,7 +465,7 @@ void Position::make_move(const Gen::Move& move, Gen::Undo& undo)
     key_ ^= ep_is_valid() ? Hash::hash_ep(ep_sq_) : 0;
     key_ ^= Hash::hash_side(side_);
 
-    assert(is_ok(false) == 0);
+    //assert(is_ok(false) == 0);
 }
 
 void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
@@ -514,7 +514,7 @@ void Position::unmake_move(const Gen::Move& move, const Gen::Undo& undo)
 
     side_ = Piece::flip_side(side_);
 
-    assert(is_ok() == 0);
+    //assert(is_ok() == 0);
 }
 
 int Position::is_ok(bool in_check) const
