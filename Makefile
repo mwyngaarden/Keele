@@ -17,7 +17,7 @@ RCOMPILE_FLAGS = -O3 -march=native -flto -DNDEBUG -fno-exceptions -fno-rtti
 #RCOMPILE_FLAGS = -DNDEBUG -O0 -ggdb3
 
 # Additional debug-specific flags
-DCOMPILE_FLAGS = -g -O3 -march=native -flto
+DCOMPILE_FLAGS = -ggdb3 -O0
 
 # General linker settings
 LINK_FLAGS =

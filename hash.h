@@ -2,16 +2,13 @@
 #define HASH_H
 
 #include <cstdint>
+#include "types.h"
 
-namespace Hash {
+void hash_init();
 
-    void init();
-
-    uint64_t hash_piece     (int piece, int sq);
-    uint64_t hash_castle    (int flags);
-    uint64_t hash_ep        (int sq);
-    uint64_t hash_side      (int side);
-
-}
+u64 hash_piece  (int piece, int sq);
+u64 hash_castle (int flags);
+u64 hash_ep     (int sq);
+u64 hash_side   (int side);
 
 #endif

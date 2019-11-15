@@ -42,9 +42,9 @@ void validate_hash()
 
 int main(int argc, char *argv[])
 {
-    Piece::init();
-    Gen::init();
-    Hash::init();
+    piece_init();
+    gen_init();
+    hash_init();
 
     if (argc != 3) {
         validate_hash();

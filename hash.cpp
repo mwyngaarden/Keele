@@ -4,9 +4,8 @@
 #include "square.h"
 using namespace std;
 
-namespace Hash {
-
-static constexpr uint64_t random64[781] = {
+// 12 * 64 + 8 + 4 + 1
+static constexpr u64 random64[781] = {
 
     // piece square
 
@@ -222,12 +221,12 @@ static constexpr int HashCastleIndex = 768;
 static constexpr int HashEpIndex     = 772;
 static constexpr int HashSideIndex   = 780;
 
-static uint64_t HashCastleFast[16];
+static u64 HashCastleFast[16];
 
-void init()
+void hash_init()
 {
     for (int flags = 0; flags < 16; flags++) {
-        uint64_t hash = 0;
+        u64 hash = 0;
 
         // modified to match polyglot
 
@@ -240,14 +239,14 @@ void init()
     }
 }
 
-uint64_t hash_piece(int piece, int sq)
+u64 hash_piece(int piece, int sq)
 {
-    assert(Piece::piece12_is_ok(piece));
-    assert(is_sq88(sq));
+    assert(piece12_is_ok(piece));
+    assert(sq88_is_ok(sq));
 
     int sq64 = to_sq64(sq);
 
-    assert(is_sq64(sq64));
+    assert(sq64_is_ok(sq64));
     
     // modified to match polyglot
 
@@ -256,16 +255,16 @@ uint64_t hash_piece(int piece, int sq)
     return random64[HashPieceIndex + index];
 }
 
-uint64_t hash_castle(int flags)
+u64 hash_castle(int flags)
 {
     assert(flags >= 0 && flags < 16);
 
     return HashCastleFast[flags];
 }
 
-uint64_t hash_ep(int sq)
+u64 hash_ep(int sq)
 {
-    assert(is_sq88(sq));
+    assert(sq88_is_ok(sq));
 
     int file = sq88_file(sq);
     
@@ -278,11 +277,10 @@ uint64_t hash_ep(int sq)
     return random64[HashEpIndex + file];
 }
 
-uint64_t hash_side(int side)
+u64 hash_side(int side)
 {
-    assert(Piece::side_is_ok(side));
+    assert(side_is_ok(side));
 
-    return side == Piece::White ? random64[HashSideIndex] : 0;
+    return side == White ? random64[HashSideIndex] : 0;
 }
 
-}

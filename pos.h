@@ -10,6 +10,7 @@
 #include "move.h"
 #include "piece.h"
 #include "square.h"
+#include "types.h"
 
 class Position {
 public:
@@ -35,17 +36,17 @@ public:
 
     int is_ok(bool in_check = true) const;
 
-    void   note_move(Gen::Move& move) const;
+    void   note_move(Move& move) const;
 
-    void   make_move(const Gen::Move& move,       Gen::Undo& undo);
-    void unmake_move(const Gen::Move& move, const Gen::Undo& undo);
+    void   make_move(const Move& move,       Undo& undo);
+    void unmake_move(const Move& move, const Undo& undo);
 
     uint64_t      key() const { return key_; }
     uint64_t calc_key() const;
 
-    void mark_pins(std::bitset<128>& pins) const;
+    void mark_pins(BitSet& pins) const;
 
-    void add_piece(int sq, Piece::Piece256 p, bool update_key);
+    void add_piece(int sq, u8 p, bool update_key);
     void rem_piece(int sq, bool update_key);
     void mov_piece(int orig, int dest, bool update_key);
 
@@ -54,9 +55,9 @@ public:
     bool side_attacks(int side, int dest) const;
     bool piece_attacks(int orig, int dest) const;
 
-    inline const Piece::Piece256& operator[](int sq) const { return square(sq); }
+    inline const u8& operator[](int sq) const { return square(sq); }
     
-    inline const Piece::Piece256& square(int sq) const
+    inline const u8& square(int sq) const
     {
         assert(sq >= -36 && sq < 156);
 
@@ -65,52 +66,52 @@ public:
 
     inline bool is_empty(int sq) const
     {
-        assert(is_sq88(sq));
+        assert(sq88_is_ok(sq));
 
-        return square(sq) == Piece::PieceNone256;
+        return square(sq) == PieceNone256;
     }
 
     inline bool is_occupied(int sq) const
     {
-        assert(is_sq88(sq));
+        assert(sq88_is_ok(sq));
 
-        return square(sq) != Piece::PieceNone256;
+        return square(sq) != PieceNone256;
     }
 
     inline bool is_op(int sq) const
     {
-        assert(is_sq88(sq));
+        assert(sq88_is_ok(sq));
 
-        return square(sq) & (Piece::BlackFlag256 >> side_);
+        return square(sq) & (BlackFlag256 >> side_);
     }
 
     inline bool is_me(int sq) const
     {
-        assert(is_sq88(sq));
+        assert(sq88_is_ok(sq));
 
-        return square(sq) & (Piece::WhiteFlag256 << side_);
+        return square(sq) & (WhiteFlag256 << side_);
     }
 
     inline bool is_piece(int sq, int piece) const
     {
-        assert(is_sq88(sq));
-        assert(Piece::piece_is_ok(piece));
+        assert(sq88_is_ok(sq));
+        assert(piece_is_ok(piece));
 
-        return Piece::to_piece(square(sq)) == piece;
+        return to_piece(square(sq)) == piece;
     }
 
-    inline const Piece::List& piece_list(int p12) const
+    inline const PieceList& piece_list(int p12) const
     {
-        assert(Piece::piece12_is_ok(p12));
+        assert(piece12_is_ok(p12));
 
         return piece_list_[p12];
     }
 
     inline int king_sq(int side) const
     {
-        assert(Piece::side_is_ok(side));
+        assert(side_is_ok(side));
 
-        return piece_list_[Piece::WhiteKing12 + side][0];
+        return piece_list_[WhiteKing12 + side][0];
     }
 
     inline int king_sq() const
@@ -134,20 +135,20 @@ public:
     
     std::string dump() const;
 
-    inline const Gen::Move& last_move() const { return last_move_; }
+    inline const Move& last_move()     const { return last_move_; }
 
 private:
 
-    inline Piece::Piece256& operator[](int sq) { return square(sq); }
+    inline u8& operator[](int sq) { return square(sq); }
 
-    inline Piece::Piece256& square(int sq)
+    inline u8& square(int sq)
     {
         assert(sq >= -36 && sq < 156);
 
         return square_[36 + sq];
     }
     
-    Piece::Piece256 square_[16 * 12];
+    u8 square_[16 * 12];
 
     int side_ = -1;
     int flags_ = 0;
@@ -155,11 +156,11 @@ private:
     int half_moves_ = 0;
     int full_moves_ = 1;
 
-    uint64_t key_ = 0;
+    u64 key_ = 0;
     
-    Gen::Move last_move_ = 0;
+    Move last_move_ = 0;
 
-    Piece::List piece_list_[12];
+    PieceList piece_list_[12];
 };
 
 #endif

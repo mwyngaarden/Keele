@@ -17,14 +17,14 @@ int san_to_sq88(string s)
 
     int sq = to_sq88(file, rank);
 
-    assert(is_sq88(sq));
+    assert(sq88_is_ok(sq));
 
     return sq;
 }
 
 string sq88_to_san(int sq)
 {
-    assert(is_sq88(sq));
+    assert(sq88_is_ok(sq));
 
     int file = sq88_file(sq);
     int rank = sq88_rank(sq);

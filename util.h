@@ -11,10 +11,11 @@ namespace Util {
     public:
         static constexpr std::size_t npos = -1;
         static constexpr std::size_t capacity() { return N; }
+        static constexpr std::size_t max_size() { return N; }
 
-        inline std::size_t size() const { return size_; }
-        inline bool empty() const { return size_ == 0; }
-        inline void clear() { size_ = 0; }
+        inline std::size_t size()  const { return size_; }
+        inline bool        empty() const { return size_ == 0; }
+        inline void        clear()       { size_ = 0; }
 
         inline void add(T value)
         {

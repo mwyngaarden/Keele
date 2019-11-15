@@ -11,17 +11,17 @@
 #include "pos.h"
 using namespace std;
 
-string move_to_string(const Gen::Move& move)
+string move_to_string(const Move& move)
 {
     ostringstream oss;
 
     oss << sq88_to_san(move.orig());
     oss << sq88_to_san(move.dest());
 
-         if (move.promo_piece() == Piece::Knight)   oss << 'n';
-    else if (move.promo_piece() == Piece::Bishop)   oss << 'b';
-    else if (move.promo_piece() == Piece::Rook)     oss << 'r';
-    else if (move.promo_piece() == Piece::Queen)    oss << 'q';
+         if (move.promo_piece() == Knight)   oss << 'n';
+    else if (move.promo_piece() == Bishop)   oss << 'b';
+    else if (move.promo_piece() == Rook)     oss << 'r';
+    else if (move.promo_piece() == Queen)    oss << 'q';
 
     return oss.str();
 }
@@ -58,8 +58,6 @@ struct Perft {
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
-
-    Perft("rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq b3", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
     /*
     Perft("rnbq1bnr/ppppkppp/4p3/8/8/1P6/PBPPPPPP/RN1QKBNR w KQ -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
@@ -202,11 +200,11 @@ int64_t perft(Position& pos,
               int64_t& mates)
 {
     if (depth == 0) {
-        //bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
+        bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
 
-        //total_checks        += sa_check;
+        total_checks        += sa_check;
         
-        total_checks        += pos.last_move().is_check();
+        //total_checks        += pos.last_move().is_check();
         dir_checks          += pos.last_move().is_dir_check();
         rev_checks          += pos.last_move().is_rev_check();
         dir_rev_checks      += pos.last_move().is_dir_rev_check();
@@ -215,22 +213,17 @@ int64_t perft(Position& pos,
         return 1;
     }
 
-    Gen::Move::List moves;
+    MoveList moves;
 
     int64_t legal_moves = 0;
-    int64_t total_moves = 
-                        pos.last_move().is_check()
-                        ? 
-                        Gen::gen_king_evasions(moves, pos)
-                        : 
-                        Gen::gen_pseudo_moves(moves, pos);
+    int64_t total_moves = gen_pseudo_moves(moves, pos);
     
     //if (depth == 1) return total_moves;
     
-    for (Gen::Move& m : moves) pos.note_move(m);
+    for (Move& m : moves) pos.note_move(m);
 
-    for (const Gen::Move& m : moves) {
-        Gen::Undo undo;
+    for (const Move& m : moves) {
+        Undo undo;
 
         //if (move_to_string(pos.last_move()) == "b2f6") cout << endl << "  " << move_to_string(m) << endl;
 
@@ -240,8 +233,7 @@ int64_t perft(Position& pos,
 
         if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
 
-            if (height == 0)
-                cout << move_to_string(m);
+            //if (height == 0) cout << move_to_string(m);
 
             int64_t pmoves = perft(pos,
                                    depth - 1,
@@ -254,8 +246,7 @@ int64_t perft(Position& pos,
                                    rev_rev_checks,
                                    mates);
 
-            if (height == 0)
-                cout << " " << pmoves << endl;
+            //if (height == 0) cout << " " << pmoves << endl;
 
             legal_moves += pmoves;
         }

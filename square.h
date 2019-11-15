@@ -23,12 +23,12 @@ enum { Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8 };
 int san_to_sq88(std::string s);
 std::string sq88_to_san(int sq);
 
-constexpr bool is_sq88(int sq)
+constexpr bool sq88_is_ok(int sq)
 {
     return (sq & ~0x77) == 0;
 }
 
-constexpr bool is_sq64(int sq)
+constexpr bool sq64_is_ok(int sq)
 {
     return sq >= 0 && sq < 64;
 }
