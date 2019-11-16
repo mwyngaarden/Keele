@@ -168,195 +168,6 @@ string Position::to_fen() const
     return oss.str();
 }
 
-// TODO: optimize
-void Position::note_move(Move& move) const
-{
-    int mside = side_;
-    int oside = flip_side(side_);
-
-    int king = king_sq(oside);
-
-    int orig = move.orig();
-    int dest = move.dest();
-
-    u8 mflag = WhiteFlag256 << mside;
-
-    u8 mpawn = make_pawn(mside);
-    //u8 opawn = make_pawn(oside);
-
-    u8 type256;
-    u8 piece256;
-
-    int inc;
-    int sq;
-
-    // direct check only
-
-    if (move.is_castle()) {
-        int rook_dest = dest > orig ? orig + 1 : orig - 1;
-
-        if (delta_type(rook_dest, king) & RookFlag256) {
-            inc = delta_inc(rook_dest, king);
-            sq = rook_dest;
-
-            do { sq += inc; } while (square(sq) == PieceNone256);
-
-            if (sq == king)
-                move.set_dir_check();
-        }
-
-        return;
-    }
-
-    if (move.is_ep()) {
-        int cap = dest - pawn_inc(mside);
-
-        // direct check?
-
-        type256 = delta_type(dest, king);
-
-        if (type256 & mpawn)
-            move.set_dir_check();
-
-        inc = dest - orig;
-
-        // revealed checks impossible if ep captures towards king on its diagonal
-        
-        if (inc == delta_inc(dest, king))
-            return;
-
-        int checkers = 0;
-
-        // revealed check on line of moving pawn
-
-        type256 = delta_type(king, orig) & QueenFlags256;
-
-        if (type256) {
-            inc = delta_inc(king, orig);
-            sq = king;
-            piece256 = PieceNone256;
-
-            do { 
-                sq += inc;
-            } while ( sq != dest
-                  && (sq == cap || sq == orig || (piece256 = square(sq)) == PieceNone256));
-
-            checkers += (piece256 & mflag) && (piece256 & type256);
-        }
-
-        if ((delta_type(king, cap) & QueenFlags256) == type256)
-            goto ep_hack;
-
-        // revealed check on line of captured pawn?
-
-        type256 = delta_type(king, cap) & QueenFlags256;
-
-        if (type256) { 
-            inc = delta_inc(king, cap);
-            sq = king;
-            piece256 = PieceNone256;
-
-            do {
-                sq += inc;
-            } while ( sq != dest
-                  && (sq == cap || sq == orig || (piece256 = square(sq)) == PieceNone256));
-        
-            checkers += (piece256 & mflag) && (piece256 & type256);
-        }
-
-ep_hack:
-
-        if (checkers >= 1) move.set_rev_check();
-        if (checkers >= 2) move.set_rev_rev_check();
-
-        return;
-    }
-
-    if (move.is_promo()) {
-        int piece = move.promo_piece();
-
-        assert(piece_is_ok(piece));
-
-        u8 promo256 = to_piece256(mside, piece);
-        
-        assert(piece256_is_ok(promo256));
-
-        // direct check?
-
-        if (delta_type(dest, king) & promo256) {
-            if (!is_slider(promo256))
-                move.set_dir_check();
-            else {
-                inc = delta_inc(dest, king);
-                sq = dest;
-
-                do {
-                    sq += inc;
-                } while (sq == orig || square(sq) ==  PieceNone256);
-
-                if (sq == king)
-                    move.set_dir_check();
-            }
-        }
-
-        goto revealed_check;
-    }
-
-    // direct check?
-
-    piece256 = square(orig);
-
-    assert(piece256_is_ok(piece256));
-
-    type256 = delta_type(dest, king);
-
-    if (piece256 & type256) {
-        if (!is_slider(piece256))
-            move.set_dir_check();
-        else {
-            inc = delta_inc(dest, king);
-            sq = dest;
-
-            do { sq += inc; } while (square(sq) == PieceNone256);
-
-            if (sq == king)
-                move.set_dir_check();
-        }
-    }
-
-revealed_check:
-
-    type256 = delta_type(orig, king) & QueenFlags256;
-
-    if (!type256)
-        return;
-
-    int inc_orig = delta_inc(king, orig);
-    int inc_dest = delta_inc(king, dest);
-
-    if (inc_orig == inc_dest)
-        return;
-
-    sq = king;
-
-    do { sq += inc_orig; } while ((piece256 = square(sq)) == PieceNone256);
-
-    if (sq != orig)
-        return;
-
-    do { sq += inc_orig; } while ((piece256 = square(sq)) == PieceNone256);
-
-    if (piece256 & mflag) {
-        if (type256 & piece256) {
-            //assert(false);
-
-            //throw;
-
-            move.set_rev_check();
-        }
-    }
-}
-
 void Position::make_move(const Move& move, Undo& undo)
 {
     undo.flags          = flags_;
@@ -432,37 +243,30 @@ void Position::unmake_move(const Move& move, const Undo& undo)
     checkers_sq_[1] = undo.checkers_sq[1];
     checkers_count_ = undo.checkers_count;
 
-    int orig = move.orig();
-    int dest = move.dest();
-
-    int piece256 = square(dest);
-        
-    int inc = pawn_inc(flip_side(side_));
+    const int orig = move.orig();
+    const int dest = move.dest();
 
     if (move.is_castle()) {
         int rook_orig = dest > orig ? orig + 3 : orig - 4;
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
-        u8 rook256 = square(rook_dest);
 
-        rem_piece(dest, false);
-        rem_piece(rook_dest, false);
-
-        add_piece(orig, piece256, false);
-        add_piece(rook_orig, rook256, false);
+        mov_piece(dest, orig, false);
+        mov_piece(rook_dest, rook_orig, false);
     }
     else if (move.is_ep()) {
-        rem_piece(dest, false);
-        add_piece(orig, piece256, false);
-        add_piece(dest - inc, to_piece256(side_, Pawn), false);
+        const int inc = pawn_inc(side_);
+
+        mov_piece(dest, orig, false);
+        add_piece(dest + inc, make_pawn(side_), false);
     }
     else {
-        rem_piece(dest, false);
-
-        if (move.is_promo())
-            add_piece(orig, to_piece256(flip_side(side_), Pawn), false);
+        if (move.is_promo()) {
+            rem_piece(dest, false);
+            add_piece(orig, make_pawn(flip_side(side_)), false);
+        }
         else
-            add_piece(orig, piece256, false);
-        
+            mov_piece(dest, orig, false);
+
         if (move.is_capture())
             add_piece(dest, move.capture_piece(), false);
     }
@@ -550,12 +354,6 @@ int Position::is_ok(bool incheck) const
             return __LINE__;
     }
 
-    //if (calc_key() != key_) return __LINE__;
-
-    // int flags_ = 0;
-    // int ep_sq_ = SquareNone;
-    // checkers_
-    
     return 0;
 }
 
@@ -841,10 +639,8 @@ void Position::set_checkers_slow()
 
         const int inc = pawn_inc(oside);
 
-        if (const int orig = king - inc - 1; square(orig) == opawn)
-            checkers_sq_[checkers_count_++] = orig;
-        else if (const int orig = king - inc + 1; square(orig) == opawn)
-            checkers_sq_[checkers_count_++] = orig;
+        if (int orig = king - inc - 1; square(orig) == opawn) checkers_sq_[checkers_count_++] = orig;
+        if (int orig = king - inc + 1; square(orig) == opawn) checkers_sq_[checkers_count_++] = orig;
     }
 
     for (int p12 = WhiteKnight12 + oside; p12 <= BlackQueen12; p12 += 2)
@@ -859,20 +655,11 @@ void Position::set_checkers_fast(const Move& move)
 
     const int king = king_sq();
 
-    const int oside = flip_side(side_);
-
-    const u8 oflag = make_flag(oside);
-
     const int orig = move.orig();
     const int dest = move.dest();
     
-    const int inc_orig = delta_inc(king, orig);
-    const int inc_dest = delta_inc(king, dest);
-
-    u8 piece256;
-
     if (move.is_castle()) {
-        int rook = (orig + dest) / 2;
+        int rook = dest > orig ? orig + 1 : orig - 1;
 
         if (piece_attacks(rook, king))
             checkers_sq_[checkers_count_++] = rook;
@@ -885,28 +672,28 @@ void Position::set_checkers_fast(const Move& move)
 
         return;
     }
+    
+    const int inc = delta_inc(king, orig);
 
-// revealed check?
+    // revealed check?
 
-    if (inc_orig == inc_dest)
-        goto direct_check;
+    if (inc != delta_inc(king, dest)) {
+        if (delta_type(inc) & QueenFlags256) {
+            const u8 oflag = make_flag(flip_side(side_));
 
-    {
-        const u8 type256 = delta_type(king, orig);
+            int sq = king + inc;
+            
+            u8 piece256;
 
-        if ((type256 & QueenFlags256) == 0)
-            goto direct_check;
+            while ((piece256 = square(sq)) == PieceNone256) sq += inc;
 
-        int sq = king + inc_orig;
-
-        while ((piece256 = square(sq)) == PieceNone256) sq += inc_orig;
-
-        if ((piece256 & oflag) && pseudo_attack(sq, king, piece256))
-            checkers_sq_[checkers_count_++] = sq;
+            if ((piece256 & oflag) && pseudo_attack(sq, king, piece256))
+                checkers_sq_[checkers_count_++] = sq;
+        }
     }
 
-direct_check:
-   
+    // direct check?
+
     if (piece_attacks(dest, king))
         checkers_sq_[checkers_count_++] = dest;
 }

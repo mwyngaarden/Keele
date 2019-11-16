@@ -253,34 +253,22 @@ void gen_queen_moves(MoveList& moves, const Position& pos, int orig)
 
 void gen_king_moves(MoveList& moves, const Position& pos)
 {
-    int king = pos.king_sq();
+    const int king = pos.king_sq();
 
-    assert(sq88_is_ok(king));
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
 
-    const int mside = pos.side();
     const int oside = flip_side(pos.side());
     
-    u8 mflag = make_flag(mside);
-    u8 piece;
+    const u8 oflag = make_flag(oside);
 
     for (auto inc : QueenIncs) {
-        int dest = king + inc;
+        const int dest = king + inc;
 
-        if (!sq88_is_ok(dest))
-            continue;
+        const u8 piece = pos[dest];
 
-        piece = pos[dest];
-
-        if (piece & mflag)
-            continue;
-
-        // FIXME: doesn't prevent me from walking in line of checking slider
-        //if (pos.side_attacks(oside, dest))
-            //continue;
-
-        moves.add(Move(king, dest, piece));
+        if (piece == PieceNone256 || (piece & oflag))
+            moves.add(Move(king, dest, piece));
     }
 }
 
@@ -288,7 +276,6 @@ void gen_king_castles(MoveList& moves, const Position& pos)
 {
     int king = pos.king_sq();
 
-    assert(sq88_is_ok(king));
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
 
@@ -317,6 +304,88 @@ void gen_king_castles(MoveList& moves, const Position& pos)
                 moves.add(Move(king, king - 2) | Move::CastleFlag);
         }
     }
+}
+
+size_t gen_evasion_moves(MoveList& moves, const Position& pos)
+{
+    const int king = pos.king_sq();
+
+    const int checkers_count = pos.checkers();
+
+    assert(checkers_count > 0);
+
+    const int checker1 =                      pos.checkers(0);
+    const int checker2 = checkers_count > 1 ? pos.checkers(1) : SquareNone;
+
+    const int inc1 =                           is_slider(pos[checker1]) ? delta_inc(king, checker1) : 0;
+    const int inc2 = checker2 != SquareNone && is_slider(pos[checker2]) ? delta_inc(king, checker2) : 0;
+    
+    const int mside = pos.side();
+    const int oside = flip_side(pos.side());
+    
+    const u8 mflag = make_flag(mside);
+    const u8 oflag = make_flag(oside);
+
+    for (auto inc : QueenIncs) {
+        if (inc == -inc1 || inc == -inc2)
+            continue;
+
+        const int dest = king + inc;
+
+        const u8 piece = pos[dest];
+
+        if (piece == PieceNone256 || (piece & oflag))
+            if (!pos.side_attacks(oside, dest))
+                moves.add(Move(king, dest, piece));
+    }
+
+    if (checkers_count == 2)
+        return moves.size();
+
+    BitSet pins;
+
+    pos.mark_pins(pins);
+
+    const u8 mpawn = make_pawn(mside);
+
+    const int pinc = pawn_inc(mside);
+
+    if (int orig = checker1 - pinc - 1; !pins.test(orig) && pos[orig] == mpawn)
+        moves.add(Move(orig, checker1, pos[checker1]));
+    if (int orig = checker1 - pinc + 1; !pins.test(orig) && pos[orig] == mpawn)
+        moves.add(Move(orig, checker1, pos[checker1]));
+
+    for (int p12 = WhiteKnight12 + mside; p12 <= BlackQueen12; p12 += 2) {
+        for (auto orig : pos.piece_list(p12)) {
+            if (pins.test(orig))
+                continue;
+
+            const u8 piece = pos[orig];
+
+            if (!pseudo_attack(orig, checker1, piece))
+                continue;
+
+            if (is_slider(piece) && !pos.is_empty(orig, checker1))
+                continue;
+
+            moves.add(Move(orig, checker1, pos[checker1]));
+        }
+    }
+
+    for (int sq = king + inc1; sq != checker1; sq += inc1) {
+
+
+
+
+    }
+
+
+
+
+
+
+
+    return moves.size();
 }
 
 void gen_nbrq_moves(MoveList& moves, const Position& pos, int dest, const bitset<128>& pins)
@@ -397,6 +466,13 @@ int delta_inc(int orig, int dest)
     assert(sq88_is_ok(dest));
 
     return delta_inc_lut[128 + dest - orig];
+}
+
+u8 delta_type(int inc)
+{
+    assert(inc >= -128 && inc < 128);
+
+    return delta_type_lut[128 + inc];
 }
 
 u8 delta_type(int orig, int dest)

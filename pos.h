@@ -38,8 +38,6 @@ public:
 
     int is_ok(bool incheck = true) const;
 
-    void   note_move(Move& move) const;
-
     void   make_move(const Move& move,       Undo& undo);
     void unmake_move(const Move& move, const Undo& undo);
 
@@ -139,7 +137,8 @@ public:
     
     std::string dump() const;
 
-    int checkers() const { return checkers_count_; }
+    inline int checkers()      const { return checkers_count_; }
+    inline int checkers(int i) const { return checkers_sq_[i]; }
 
 private:
 
