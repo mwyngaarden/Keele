@@ -68,6 +68,14 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 
     const int side = pos.side();
 
+    gen_king_moves(moves, pos);
+    
+    if (pos.checkers() == 2)
+        return moves.size();
+
+    if (pos.checkers() == 0)
+        gen_king_castles(moves, pos);
+
     for (auto orig : pos.piece_list(PieceList12[side][Pawn]))
         gen_pawn_moves(moves, pos, orig);
 
@@ -82,13 +90,6 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 
     for (auto orig : pos.piece_list(PieceList12[side][Queen]))
         gen_queen_moves(moves, pos, orig);
-
-    {
-        gen_king_moves(moves, pos);
-
-        if (!pos.last_move().is_check())
-            gen_king_castles(moves, pos);
-    }
 
     return moves.size();
 }
@@ -105,7 +106,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Pawn));
 
-    u8 oflag = BlackFlag256 >> pos.side();
+    u8 oflag = make_flag(flip_side(pos.side()));
 
     const int inc = pawn_inc(pos.side());
     const int rank = sq88_rank(orig, pos.side());
@@ -175,7 +176,7 @@ void gen_knight_moves(MoveList& moves, const Position& pos, int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Knight));
 
-    u8 ocolor = BlackFlag256 >> pos.side();
+    u8 oflag = make_flag(flip_side(pos.side()));
     u8 piece;
 
     for (auto inc : KnightIncs) {
@@ -185,7 +186,7 @@ void gen_knight_moves(MoveList& moves, const Position& pos, int orig)
 
         if (piece == PieceNone256)
             moves.add(Move(orig, dest));
-        else if (piece & ocolor)
+        else if (piece & oflag)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -196,7 +197,7 @@ void gen_bishop_moves(MoveList& moves, const Position& pos, int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Bishop));
 
-    u8 ocolor = BlackFlag256 >> pos.side();
+    u8 oflag = make_flag(flip_side(pos.side()));
     u8 piece;
 
     for (auto inc : BishopIncs) {
@@ -205,7 +206,7 @@ void gen_bishop_moves(MoveList& moves, const Position& pos, int orig)
         while ((piece = pos[dest += inc]) == PieceNone256)
             moves.add(Move(orig, dest));
 
-        if (piece & ocolor)
+        if (piece & oflag)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -216,7 +217,7 @@ void gen_rook_moves(MoveList& moves, const Position& pos, int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Rook));
     
-    u8 ocolor = BlackFlag256 >> pos.side();
+    u8 oflag = make_flag(flip_side(pos.side()));
     u8 piece;
 
     for (auto inc : RookIncs) {
@@ -225,7 +226,7 @@ void gen_rook_moves(MoveList& moves, const Position& pos, int orig)
         while ((piece = pos[dest += inc]) == PieceNone256)
             moves.add(Move(orig, dest));
 
-        if (piece & ocolor)
+        if (piece & oflag)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -236,7 +237,7 @@ void gen_queen_moves(MoveList& moves, const Position& pos, int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Queen));
 
-    u8 ocolor = BlackFlag256 >> pos.side();
+    u8 oflag = make_flag(flip_side(pos.side()));
     u8 piece;
 
     for (auto inc : QueenIncs) {
@@ -245,7 +246,7 @@ void gen_queen_moves(MoveList& moves, const Position& pos, int orig)
         while ((piece = pos[dest += inc]) == PieceNone256)
             moves.add(Move(orig, dest));
 
-        if (piece & ocolor)
+        if (piece & oflag)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -257,214 +258,30 @@ void gen_king_moves(MoveList& moves, const Position& pos)
     assert(sq88_is_ok(king));
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
+
+    const int mside = pos.side();
+    const int oside = flip_side(pos.side());
     
-    u8 ocolor = BlackFlag256 >> pos.side();
+    u8 mflag = make_flag(mside);
     u8 piece;
 
     for (auto inc : QueenIncs) {
-        int dest = king;
-
-        piece = pos[dest += inc];
-
-        if (piece == PieceNone256)
-            moves.add(Move(king, dest));
-        else if (piece & ocolor)
-            moves.add(Move(king, dest, piece));
-    }
-}
-
-size_t gen_king_evasions(MoveList& moves, const Position& pos)
-{
-    const Move& lm = pos.last_move();
-    
-    assert(lm.is_check());
-
-    const int king = pos.king_sq();
-    const int mside = pos.side();
-    const int oside = flip_side(mside);
-
-    assert(pos.side_attacks(oside, king));
-    
-    u8 mflag = make_flag(mside);
-
-    if (lm.is_double_check()) {
-        assert(lm.is_dir_rev_check() || lm.is_rev_rev_check());
-
-        const int inc_direct = is_pawn(lm.dest()) ? 0 : delta_inc(lm.dest(), king);
-        const int inc_reveal = delta_inc(lm.orig(), king);
-
-        for (auto inc : QueenIncs) {
-            if (inc == inc_direct || inc == inc_reveal)
-                continue;
-
-            const int dest = king + inc;
-
-            if (!sq88_is_ok(dest))
-                continue;
-            if (pos[dest] & mflag)
-                continue;
-            if (!pos.side_attacks(oside, dest))
-                moves.add(Move(king, dest, pos[dest]));
-        }
-
-        return moves.size();
-    }
-
-    assert(!lm.is_double_check());
-
-    int dest;
-    int inc;
-
-    if (lm.is_dir_check()) {
-        dest = lm.is_castle() ? (lm.orig() + lm.dest()) >> 1 : lm.dest();
-
-        assert(sq88_is_ok(dest));
-        assert(pos.is_op(dest));
-        assert(!lm.is_castle() || is_rook(pos[dest]));
-
-        inc = delta_inc(dest, king);
-        
-        assert(inc != 0);
-    }
-    else {
-        inc = delta_inc(lm.orig(), king);
-
-        if (inc == 0)
-            cout << hex << uint32_t(lm) << endl;
-
-        assert(inc != 0);
-
-        dest = lm.orig();
-
-        do { dest -= inc; } while (pos[dest] == PieceNone256);
-
-        assert(sq88_is_ok(dest));
-        assert(pos.is_op(dest));
-    }
-   
-    // TODO: is passing bitset reference faster then returning a bitset?
-    BitSet pins;
-
-    pos.mark_pins(pins);
-    
-    const u8 mpawn = make_pawn(mside);
-    
-    const int pinc = pawn_inc(mside);
-
-    int orig;
-
-    // promotions
-    
-    if (sq88_rank(dest, mside) == Rank8) {
-        orig = dest - pinc - 1;
-
-        //if (pos[orig] == mpawn && !pins.test(orig)) {
-        if (pos[orig] == mpawn) {
-            Move m(orig, dest, pos[dest]);
-
-            moves.add(m | Move::PromoKnightFlag);
-            moves.add(m | Move::PromoBishopFlag);
-            moves.add(m | Move::PromoRookFlag);
-            moves.add(m | Move::PromoQueenFlag);
-        }
-
-        orig = dest - pinc + 1;
-
-        //if (pos[orig] == mpawn && !pins.test(orig)) {
-        if (pos[orig] == mpawn) {
-            Move m(orig, dest, pos[dest]);
-
-            moves.add(m | Move::PromoKnightFlag);
-            moves.add(m | Move::PromoBishopFlag);
-            moves.add(m | Move::PromoRookFlag);
-            moves.add(m | Move::PromoQueenFlag);
-        }
-    }
-    else {
-        orig = dest - pinc - 1;
-
-        //if (pos[orig] == mpawn && !pins.test(orig))
-        if (pos[orig] == mpawn)
-            moves.add(Move(orig, dest, pos[dest]));
-
-        orig = dest - pinc + 1;
-
-        //if (pos[orig] == mpawn && !pins.test(orig))
-        if (pos[orig] == mpawn)
-            moves.add(Move(orig, dest, pos[dest]));
-    }
-
-    if (lm.is_double() && lm.is_dir_check()) {
-        // TODO: does this make more sense than using pos.ep_sq()?
-        int ep_sq = lm.dest() + pinc;
-
-        orig = dest - 1;
-
-        //if (pos[orig] == mpawn && !pins.test(orig)) {
-        if (pos[orig] == mpawn) {
-            //if (is_pinned(king, orig, ep_sq))
-            
-            moves.add(Move(orig, ep_sq, pos[lm.dest()]) | Move::EPFlag);
-        }
-
-        orig = dest + 1;
-        
-        //if (pos[orig] == mpawn && !pins.test(orig)) {
-        if (pos[orig] == mpawn) {
-            //if (is_pinned(king, orig, ep_sq))
-
-            moves.add(Move(orig, ep_sq, pos[lm.dest()]) | Move::EPFlag);
-        }
-    }
-
-    gen_nbrq_moves(moves, pos, dest, pins);
-
-    while ((dest += inc) != king) {
-        orig = dest - pinc;
-
-        if (pos[orig] == mpawn) {
-            Move m(orig, dest);
-
-            if (sq88_rank(dest, mside) == Rank8) {
-                moves.add(m | Move::PromoKnightFlag);
-                moves.add(m | Move::PromoBishopFlag);
-                moves.add(m | Move::PromoRookFlag);
-                moves.add(m | Move::PromoQueenFlag);
-            }
-            else
-                moves.add(m);
-        }
-
-        if (pos[orig] == PieceNone256) {
-            if (sq88_rank(dest, mside) == Rank4) {
-                orig -= pinc;
-
-                if (pos[orig] == mpawn)
-                    moves.add(Move(orig, dest) | Move::DoubleFlag);
-            }
-        }
-
-        gen_nbrq_moves(moves, pos, dest, pins);
-    }
-
-    if (lm.is_dir_check() && is_pawn(pos[lm.dest()]))
-        inc = 0;
-
-    for (auto ki : QueenIncs) {
-        if (ki == inc)
-            continue;
-
-        dest = king + ki;
+        int dest = king + inc;
 
         if (!sq88_is_ok(dest))
             continue;
-        if (pos[dest] & mflag)
-            continue;
-        if (!pos.side_attacks(oside, dest))
-            moves.add(Move(king, dest, pos[dest]));
-    }
 
-    return moves.size();
+        piece = pos[dest];
+
+        if (piece & mflag)
+            continue;
+
+        // FIXME: doesn't prevent me from walking in line of checking slider
+        //if (pos.side_attacks(oside, dest))
+            //continue;
+
+        moves.add(Move(king, dest, piece));
+    }
 }
 
 void gen_king_castles(MoveList& moves, const Position& pos)
@@ -474,13 +291,15 @@ void gen_king_castles(MoveList& moves, const Position& pos)
     assert(sq88_is_ok(king));
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
+
+    const int oside = flip_side(pos.side());
     
     if (pos.can_castle_k()) {
         if (   pos.is_empty(king + 1)
             && pos.is_empty(king + 2)) {
 
-            bool check = pos.side_attacks(flip_side(pos.side()), king + 1)
-                      || pos.side_attacks(flip_side(pos.side()), king + 2);
+            bool check = pos.side_attacks(oside, king + 1)
+                      || pos.side_attacks(oside, king + 2);
 
             if (!check)
                 moves.add(Move(king, king + 2) | Move::CastleFlag);
@@ -491,8 +310,8 @@ void gen_king_castles(MoveList& moves, const Position& pos)
             && pos.is_empty(king - 2)
             && pos.is_empty(king - 3)) {
 
-            bool check = pos.side_attacks(flip_side(pos.side()), king - 1)
-                      || pos.side_attacks(flip_side(pos.side()), king - 2);
+            bool check = pos.side_attacks(oside, king - 1)
+                      || pos.side_attacks(oside, king - 2);
 
             if (!check)
                 moves.add(Move(king, king - 2) | Move::CastleFlag);

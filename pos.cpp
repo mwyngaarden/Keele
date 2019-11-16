@@ -99,59 +99,9 @@ Position::Position(const string& fen)
     if (full_moves != "-")
         full_moves_ = stoi(full_moves);
 
-    // set last move
+    // checkers
 
-    if (ep_sq_ != SquareNone) {
-        int inc = pawn_inc(flip_side(side_));
-
-        [[maybe_unused]] u8 opawn = make_pawn(flip_side(side_));
-        
-        assert(square(ep_sq_ + inc) == opawn);
-
-        last_move_ = Move(ep_sq_ - inc, ep_sq_ + inc) | Move::DoubleFlag;
-    }
-
-    int king = king_sq();
-
-    int oside = flip_side(side_);
-
-    int checker1 = SquareNone;
-    int checker2 = SquareNone;
-
-    for (int p12 = WhitePawn12 + oside; p12 <= BlackQueen12; p12 += 2) {
-        for (const int orig : piece_list(p12)) {
-            if (piece_attacks(orig, king)) {
-                assert(checker2 == SquareNone);
-                
-                checker2 = checker1;
-                checker1 = orig;
-            }
-        }
-    }
-
-    if (checker1 == SquareNone)
-        last_move_ = 0;
-    else if (checker2 == SquareNone) {
-        if (last_move_) {
-            if (is_pawn(square(checker1)))
-                last_move_ = last_move_ | Move::DirectCheckFlag;
-            else
-                last_move_ = last_move_ | Move::RevealCheckFlag;
-        }
-        else
-            last_move_ = Move(checker1, checker1) | Move::DirectCheckFlag; 
-    }
-    else {
-        if (is_slider(square(checker1)))
-            swap(checker1, checker2);
-
-        // TODO: validate logic
-        if (is_slider(square(checker1)))
-            assert(false);
-
-        last_move_ = Move(checker2 + delta_inc(checker2, king), checker1);
-        last_move_ = last_move_ | Move::DirectCheckFlag | Move::RevealCheckFlag;
-    }
+    set_checkers_slow();
 
     // key
 
@@ -414,7 +364,9 @@ void Position::make_move(const Move& move, Undo& undo)
     undo.half_moves     = half_moves_;
     undo.full_moves     = full_moves_;
     undo.key            = key_;
-    undo.last_move      = last_move_;
+    undo.checkers_sq[0] = checkers_sq_[0];
+    undo.checkers_sq[1] = checkers_sq_[1];
+    undo.checkers_count = checkers_count_;
 
     key_ ^= hash_castle(flags_);
     key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
@@ -460,7 +412,9 @@ void Position::make_move(const Move& move, Undo& undo)
     
     side_ = flip_side(side_);
 
-    last_move_ = move;
+    checkers_count_ = 0;
+
+    set_checkers_fast(move);
 
     key_ ^= hash_castle(flags_);
     key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
@@ -474,7 +428,9 @@ void Position::unmake_move(const Move& move, const Undo& undo)
     half_moves_     = undo.half_moves;
     full_moves_     = undo.full_moves;
     key_            = undo.key;
-    last_move_      = undo.last_move;
+    checkers_sq_[0] = undo.checkers_sq[0];
+    checkers_sq_[1] = undo.checkers_sq[1];
+    checkers_count_ = undo.checkers_count;
 
     int orig = move.orig();
     int dest = move.dest();
@@ -514,7 +470,7 @@ void Position::unmake_move(const Move& move, const Undo& undo)
     side_ = flip_side(side_);
 }
 
-int Position::is_ok(bool in_check) const
+int Position::is_ok(bool incheck) const
 {
     if (!side_is_ok(side_))
         return __LINE__;
@@ -574,7 +530,7 @@ int Position::is_ok(bool in_check) const
             return __LINE__;
     }
 
-    if (in_check && side_attacks(side_, king_sq(flip_side(side_))))
+    if (incheck && side_attacks(side_, king_sq(flip_side(side_))))
         return __LINE__;
 
     if (flags_ < 0 && flags_ >= 16)
@@ -598,7 +554,7 @@ int Position::is_ok(bool in_check) const
 
     // int flags_ = 0;
     // int ep_sq_ = SquareNone;
-    // Move last_move_;
+    // checkers_
     
     return 0;
 }
@@ -674,10 +630,10 @@ bool Position::side_attacks(int side, int dest) const
 
     int king = king_sq(side);
 
-    if (delta_type(king, dest) & KingFlag256)
+    if (pseudo_attack(king, dest, KingFlag256))
         return true;
 
-    u8 pawn256 = WhitePawn256 << side;
+    u8 pawn256 = make_pawn(side);
 
     {
         int inc = pawn_inc(side);
@@ -739,20 +695,14 @@ bool Position::piece_attacks(int orig, int dest) const
     assert(sq88_is_ok(dest));
     assert(!is_empty(orig));
 
-    u8 piece256 = square(orig);
+    const u8 piece256 = square(orig);
 
-    if (!(delta_type(orig, dest) & piece256))
+    assert(piece256_is_ok(piece256));
+
+    if (!pseudo_attack(orig, dest, piece256))
         return false;
 
-    if (!is_slider(piece256))
-        return true;
-
-    int inc = delta_inc(dest, orig);
-    int sq = dest;
-
-    do { sq += inc; } while (square(sq) == PieceNone256);
-
-    return sq == orig;
+    return !is_slider(piece256) || is_empty(orig, dest);
 }
 
 string Position::dump() const
@@ -878,3 +828,105 @@ void Position::mark_pins(bitset<128>& pins) const
     }
 }
 
+void Position::set_checkers_slow()
+{
+    assert(checkers_count_ == 0);
+
+    const int king = king_sq();
+
+    const int oside = flip_side(side_);
+
+    {
+        const u8 opawn = make_pawn(oside);
+
+        const int inc = pawn_inc(oside);
+
+        if (const int orig = king - inc - 1; square(orig) == opawn)
+            checkers_sq_[checkers_count_++] = orig;
+        else if (const int orig = king - inc + 1; square(orig) == opawn)
+            checkers_sq_[checkers_count_++] = orig;
+    }
+
+    for (int p12 = WhiteKnight12 + oside; p12 <= BlackQueen12; p12 += 2)
+        for (const int orig : piece_list_[p12])
+            if (piece_attacks(orig, king))
+                checkers_sq_[checkers_count_++] = orig;
+}
+
+void Position::set_checkers_fast(const Move& move)
+{
+    assert(checkers_count_ == 0);
+
+    const int king = king_sq();
+
+    const int oside = flip_side(side_);
+
+    const u8 oflag = make_flag(oside);
+
+    const int orig = move.orig();
+    const int dest = move.dest();
+    
+    const int inc_orig = delta_inc(king, orig);
+    const int inc_dest = delta_inc(king, dest);
+
+    u8 piece256;
+
+    if (move.is_castle()) {
+        int rook = (orig + dest) / 2;
+
+        if (piece_attacks(rook, king))
+            checkers_sq_[checkers_count_++] = rook;
+
+        return;
+    }
+    
+    if (move.is_ep()) {
+        set_checkers_slow();
+
+        return;
+    }
+
+// revealed check?
+
+    if (inc_orig == inc_dest)
+        goto direct_check;
+
+    {
+        const u8 type256 = delta_type(king, orig);
+
+        if ((type256 & QueenFlags256) == 0)
+            goto direct_check;
+
+        int sq = king + inc_orig;
+
+        while ((piece256 = square(sq)) == PieceNone256) sq += inc_orig;
+
+        if ((piece256 & oflag) && pseudo_attack(sq, king, piece256))
+            checkers_sq_[checkers_count_++] = sq;
+    }
+
+direct_check:
+   
+    if (piece_attacks(dest, king))
+        checkers_sq_[checkers_count_++] = dest;
+}
+
+bool Position::is_empty(int orig, int dest) const
+{
+    assert(sq88_is_ok(orig));
+    assert(sq88_is_ok(dest));
+
+    assert(pseudo_attack(orig, dest, QueenFlags256));
+
+    const int inc = delta_inc(orig, dest);
+
+    int sq = orig;
+
+    do {
+        sq += inc;
+
+        if (sq == dest) return true;
+    } while (square(sq) == PieceNone256);
+
+    return false;
+}

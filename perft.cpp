@@ -59,18 +59,6 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
 
-    /*
-    Perft("rnbq1bnr/ppppkppp/4p3/8/8/1P6/PBPPPPPP/RN1QKBNR w KQ -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
-    Perft("rnbq1bnr/pppp1ppp/3k4/3Pp3/8/1P6/P1P1PPPP/RNBQKBNR w KQ - 1 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("8/2p5/3p4/1P6/K3Pprk/1R6/6P1/8 b - e3 0 3", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("1R6/8/7k/4pPp1/8/4K3/5R2/8 w - g6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("8/6p1/5k2/4pP2/8/8/1Q3Q2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("8/6p1/5k2/4pP2/8/8/1R3R2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("8/6p1/5k2/4pP2/8/8/1R3B2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("8/6p1/5k2/4pP2/8/8/1B3R2/2K5 w - e6 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    Perft("rnbqkbnr/p3pppp/3p4/1Pp5/Q7/8/PP1PPPPP/RNB1KBNR w KQkq c6 0 4", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-    */
-
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
     Perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 48, 2039, 97862, 4085603, 193690690, 8031647685),
@@ -84,6 +72,7 @@ std::vector<Perft> Fens {
     Perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 44, 1486, 62379, 2103487, 89941194),
 
     Perft("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 46, 2079, 89890, 3894594, 164075551, 6923051137, 287188994746, 11923589843526, 490154852788714)
+
 };
 
 static int64_t perft(Position& pos,
@@ -91,20 +80,16 @@ static int64_t perft(Position& pos,
                      int height,
                      int64_t& illegal_moves,
                      int64_t& total_checks,
-                     int64_t& dir_checks,
-                     int64_t& rev_checks,
-                     int64_t& dir_rev_checks,
-                     int64_t& rev_rev_checks,
+                     int64_t& single_checks,
+                     int64_t& double_checks,
                      int64_t& mates);
 
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 {
     int64_t nodes = 0;
     int64_t total_checks = 0;
-    int64_t dir_checks = 0;
-    int64_t rev_checks = 0;
-    int64_t dir_rev_checks = 0;
-    int64_t rev_rev_checks = 0;
+    int64_t single_checks = 0;
+    int64_t double_checks = 0;
     int64_t mates = 0;
     int64_t nodes_diff = 0;
 
@@ -118,17 +103,13 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
             continue;
 
         total_checks = 0;
-        dir_checks = 0;
-        rev_checks = 0;
-        dir_rev_checks = 0;
-        rev_rev_checks = 0;
+        single_checks = 0;
+        double_checks = 0;
         mates = 0;
 
         Position pos(pp.fen);
 
         cout << pos.dump() << endl;
-
-        //cout << pp.fen << endl << endl;
 
         auto t0 = chrono::system_clock::now();
 
@@ -137,10 +118,8 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
                                    0,
                                    illegal_moves,
                                    total_checks,
-                                   dir_checks,
-                                   rev_checks,
-                                   dir_rev_checks,
-                                   rev_rev_checks,
+                                   single_checks,
+                                   double_checks,
                                    mates);
     
         auto t1 = chrono::system_clock::now();
@@ -155,11 +134,6 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 
         nodes += have_nodes;
 
-        int64_t cum_checks = dir_checks + rev_checks + dir_rev_checks + rev_rev_checks;
-        int64_t double_checks = dir_rev_checks + rev_rev_checks;
-
-        //cout << i << "," << want_nodes << "," << have_nodes << "," << nodes_diff << '\n';
-
         cout << "\twant nodes: " << want_nodes               << endl;
         cout << "\thave nodes: " << have_nodes               << endl;
         cout << "\tdiff nodes: " << have_nodes - want_nodes;
@@ -170,15 +144,8 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         
         cout << "\tmates: "             << mates            << endl;
         cout << "\ttotal checks: "      << total_checks     << endl;
-        cout << "\tdir checks: "        << dir_checks       << endl;
-        cout << "\trev checks: "        << rev_checks       << endl;
-        cout << "\tdir rev checks: "    << dir_rev_checks   << endl;
-        cout << "\trev rev checks: "    << rev_rev_checks   << endl;
+        cout << "\tsingle checks: "     << single_checks    << endl;
         cout << "\tdouble checks: "     << double_checks    << endl;
-        cout << "\tcumulative: "        << cum_checks       << endl;
-        cout << "\tdiff checks: "       << total_checks - cum_checks;
-
-        if (total_checks != cum_checks) cout << " !!!!!!!!!!!!!!!!";
 
         cout << endl;
     }
@@ -193,22 +160,14 @@ int64_t perft(Position& pos,
               int height,
               int64_t& illegal_moves,
               int64_t& total_checks,
-              int64_t& dir_checks,
-              int64_t& rev_checks,
-              int64_t& dir_rev_checks,
-              int64_t& rev_rev_checks,
+              int64_t& single_checks,
+              int64_t& double_checks,
               int64_t& mates)
 {
     if (depth == 0) {
-        bool sa_check = pos.side_attacks(pos.side() ^ 1, pos.king_sq());
-
-        total_checks        += sa_check;
-        
-        //total_checks        += pos.last_move().is_check();
-        dir_checks          += pos.last_move().is_dir_check();
-        rev_checks          += pos.last_move().is_rev_check();
-        dir_rev_checks      += pos.last_move().is_dir_rev_check();
-        rev_rev_checks      += pos.last_move().is_rev_rev_check();
+        total_checks    += pos.checkers() > 0;
+        single_checks   += pos.checkers() == 1;
+        double_checks   += pos.checkers() == 2;
 
         return 1;
     }
@@ -220,34 +179,27 @@ int64_t perft(Position& pos,
     
     //if (depth == 1) return total_moves;
     
-    for (Move& m : moves) pos.note_move(m);
-
     for (const Move& m : moves) {
         Undo undo;
-
-        //if (move_to_string(pos.last_move()) == "b2f6") cout << endl << "  " << move_to_string(m) << endl;
 
         pos.make_move(m, undo);
             
         int side = pos.side();
 
-        if (!pos.side_attacks(side, pos.king_sq(side ^ 1))) {
+        bool incheck = pos.side_attacks(side, pos.king_sq(flip_side(side)));
 
-            //if (height == 0) cout << move_to_string(m);
+        //assert(!king || (king && !incheck));
 
+        if (!incheck) {
             int64_t pmoves = perft(pos,
                                    depth - 1,
                                    height + 1,
                                    illegal_moves,
                                    total_checks,
-                                   dir_checks,
-                                   rev_checks,
-                                   dir_rev_checks,
-                                   rev_rev_checks,
+                                   single_checks,
+                                   double_checks,
                                    mates);
-
-            //if (height == 0) cout << " " << pmoves << endl;
-
+            
             legal_moves += pmoves;
         }
         else
@@ -256,7 +208,8 @@ int64_t perft(Position& pos,
         pos.unmake_move(m, undo);
     }
 
-    mates += depth == 1 && !legal_moves;
+    if (depth == 1 && legal_moves == 0)
+        mates++;
 
     return legal_moves;
 }

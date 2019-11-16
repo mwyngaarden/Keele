@@ -3,6 +3,7 @@
 
 #include <bitset>
 #include <string>
+#include <vector>
 #include <cassert>
 #include <cstdint>
 #include "gen.h"
@@ -11,6 +12,7 @@
 #include "piece.h"
 #include "square.h"
 #include "types.h"
+#include "util.h"
 
 class Position {
 public:
@@ -34,7 +36,7 @@ public:
 
     std::string to_fen() const;
 
-    int is_ok(bool in_check = true) const;
+    int is_ok(bool incheck = true) const;
 
     void   note_move(Move& move) const;
 
@@ -55,6 +57,13 @@ public:
     bool side_attacks(int side, int dest) const;
     bool piece_attacks(int orig, int dest) const;
 
+    u8 at(int sq) const
+    { 
+        assert(sq >= -36 && sq < 156);
+
+        return square_[36 + sq];
+    }
+
     inline const u8& operator[](int sq) const { return square(sq); }
     
     inline const u8& square(int sq) const
@@ -71,12 +80,7 @@ public:
         return square(sq) == PieceNone256;
     }
 
-    inline bool is_occupied(int sq) const
-    {
-        assert(sq88_is_ok(sq));
-
-        return square(sq) != PieceNone256;
-    }
+    bool is_empty(int orig, int dest) const;
 
     inline bool is_op(int sq) const
     {
@@ -135,9 +139,12 @@ public:
     
     std::string dump() const;
 
-    inline const Move& last_move()     const { return last_move_; }
+    int checkers() const { return checkers_count_; }
 
 private:
+
+    void set_checkers_slow();
+    void set_checkers_fast(const Move& move);
 
     inline u8& operator[](int sq) { return square(sq); }
 
@@ -156,10 +163,11 @@ private:
     int half_moves_ = 0;
     int full_moves_ = 1;
 
+    int checkers_sq_[2];
+    int checkers_count_ = 0;
+
     u64 key_ = 0;
     
-    Move last_move_ = 0;
-
     PieceList piece_list_[12];
 };
 

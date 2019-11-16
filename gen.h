@@ -16,7 +16,6 @@ void gen_init();
 
 std::size_t gen_pseudo_moves    (MoveList& moves, const Position& pos);
 std::size_t gen_legal_moves     (MoveList& moves, const Position& pos);
-std::size_t gen_evasion_moves   (MoveList& moves, const Position& pos);
 
 u8  delta_type      (int orig, int dest);
 int delta_inc       (int orig, int dest);

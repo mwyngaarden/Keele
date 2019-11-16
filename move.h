@@ -82,9 +82,8 @@ struct Undo {
 
     u64 key;
 
-    int check_sq[2];
-
-    Move last_move;
+    int checkers_sq[2];
+    int checkers_count;
 };
     
 using MoveList = Util::List<Move, 256>;

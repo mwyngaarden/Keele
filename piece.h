@@ -91,6 +91,7 @@ constexpr bool is_king      (u8 piece) { return (piece & KingFlag256) != PieceNo
 constexpr bool is_slider    (u8 piece) { return (piece & QueenFlags256) != PieceNone256; }
 
 constexpr u8   flip_pawn    (u8 piece) { return piece ^ (ColorFlags256 | PawnFlags256); }
+constexpr u8   flip_flag    (u8 piece) { return piece ^ ColorFlags256; }
 constexpr u8   make_pawn    (int side) { return WhitePawn256 << side; }
 constexpr u8   make_flag    (int side) { return side + 1; }
 constexpr int  flip_side    (int side) { return side ^ 1; }
