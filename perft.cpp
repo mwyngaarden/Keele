@@ -58,6 +58,7 @@ struct Perft {
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
+    //Perft("8/2p5/3p4/KP5r/4P2k/8/6p1/7R b - - 1 3", 1, 1, 1, 1, 1, 1, 1, 1, 1),
 
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
@@ -111,7 +112,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 
         cout << pos.dump() << endl;
 
-        auto t0 = chrono::system_clock::now();
+        auto t0 = chrono::high_resolution_clock::now();
 
         int64_t have_nodes = perft(pos,
                                    depth,
@@ -122,7 +123,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
                                    double_checks,
                                    mates);
     
-        auto t1 = chrono::system_clock::now();
+        auto t1 = chrono::high_resolution_clock::now();
 
         auto ns_local = chrono::duration_cast<chrono::microseconds>(t1 - t0);
 
@@ -175,22 +176,29 @@ int64_t perft(Position& pos,
     MoveList moves;
 
     int64_t legal_moves = 0;
-    int64_t total_moves = gen_pseudo_moves(moves, pos);
+    int64_t total_moves = pos.checkers() > 0 ? gen_evasion_moves(moves, pos) : gen_pseudo_moves(moves, pos);
+    bool evasion = pos.checkers() > 0;
+    //int64_t total_moves = gen_pseudo_moves(moves, pos);
     
     //if (depth == 1) return total_moves;
     
     for (const Move& m : moves) {
+        bool king_move = false; //is_king(pos.at(m.orig()));
+
         Undo undo;
 
         pos.make_move(m, undo);
             
         int side = pos.side();
 
-        bool incheck = pos.side_attacks(side, pos.king_sq(flip_side(side)));
+        bool is_legal = king_move || evasion || !pos.side_attacks(side, pos.king_sq(flip_side(side)));
 
         //assert(!king || (king && !incheck));
 
-        if (!incheck) {
+        if (is_legal) {
+
+            //if (height == 0) cout << move_to_string(m);
+
             int64_t pmoves = perft(pos,
                                    depth - 1,
                                    height + 1,
@@ -199,6 +207,8 @@ int64_t perft(Position& pos,
                                    single_checks,
                                    double_checks,
                                    mates);
+
+            //if (height == 0) cout << " = " << pmoves << endl;
             
             legal_moves += pmoves;
         }

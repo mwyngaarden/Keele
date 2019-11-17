@@ -519,16 +519,16 @@ string Position::dump() const
         oss << ' ' << (rank + 1) << "  |";
 
         for (int file = 0; file <= 7; file++) { 
-            u8 piece256 = square(to_sq88(file, rank));
+            const u8 piece256 = square(to_sq88(file, rank));
 
             if (is_white(piece256))
-                oss << '-' << piece256_to_char(piece256) << '-';
+                oss << '-' << (char)        piece256_to_char(piece256)  << '-';
             else if (is_black(piece256))
-                oss << '<' << piece256_to_char(piece256) << '>';
+                oss << '<' << (char)toupper(piece256_to_char(piece256)) << '>';
             else  {
-                int clr = ~(file ^ rank) & 1;
+                const int dark = ~(file ^ rank) & 1;
 
-                oss << ' ' << (clr ? '.' : ' ') << ' ';
+                oss << ' ' << (dark ? '.' : ' ') << ' ';
             }
 
             oss << '|';
