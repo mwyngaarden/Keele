@@ -583,7 +583,7 @@ bool Position::ep_is_valid() const
     return square(sq - 1) == mpawn || square(sq + 1) == mpawn;
 }
 
-void Position::mark_pins(bitset<128>& pins) const
+void Position::mark_pins(BitSet& pins) const
 {
     assert(pins.none());
 
@@ -594,36 +594,76 @@ void Position::mark_pins(bitset<128>& pins) const
 
     const u8 mflag = make_flag(mside);
 
+    u8 piece256;
+
+    int sq1;
+    int sq2;
+    int inc;
+
     for (int p12 = WhiteBishop12 + oside; p12 <= BlackQueen12; p12 += 2) {
         for (const int orig : piece_list_[p12]) {
             assert(sq88_is_ok(orig));
 
-            if (!(square(orig) & delta_type(king, orig)))
+            piece256 = square(orig);
+
+            if (!pseudo_attack(king, orig, piece256))
                 continue;
 
-            const int inc = delta_inc(king, orig);
-            int sq1 = king;
-            int sq2 = orig;
+            inc = delta_inc(king, orig);
+            sq1 = king + inc;
 
-            do { sq1 += inc; } while (square(sq1) == PieceNone256);
+            while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
             
             assert(sq88_is_ok(sq1));
 
-            if (!(square(sq1) & mflag))
+            if ((piece256 & mflag) == 0)
                 continue;
 
-            do { sq2 -= inc; } while (square(sq2) == PieceNone256);
+            sq2 = orig - inc;
+
+            while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
 
             assert(sq88_is_ok(sq2));
 
-            if (sq1 != sq2)
-                continue;
-
-            assert(!pins.test(sq1));
-
-            pins.set(sq1);
+            if (sq1 == sq2)
+                pins.set(sq1);
         }
     }
+
+    /*
+    for (const auto orig : piece_list_[WhiteBishop12 + oside]) {
+        if (!pseudo_attack(orig, king, BishopFlag256)) continue;
+        inc = delta_inc(king, orig);
+        sq1 = king + inc;
+        while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
+        if ((piece256 & mflag) == 0) continue;
+        sq2 = orig - inc;
+        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        if (sq1 == sq2) pins.set(sq1);
+    }
+
+    for (const auto orig : piece_list_[WhiteRook12 + oside]) {
+        if (!pseudo_attack(orig, king, RookFlag256)) continue;
+        inc = delta_inc(king, orig);
+        sq1 = king + inc;
+        while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
+        if ((piece256 & mflag) == 0) continue;
+        sq2 = orig - inc;
+        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        if (sq1 == sq2) pins.set(sq1);
+    }
+
+    for (const auto orig : piece_list_[WhiteQueen12 + oside]) {
+        if (!pseudo_attack(orig, king, QueenFlags256)) continue;
+        inc = delta_inc(king, orig);
+        sq1 = king + inc;
+        while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
+        if ((piece256 & mflag) == 0) continue;
+        sq2 = orig - inc;
+        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        if (sq1 == sq2) pins.set(sq1);
+    }
+    */
 }
 
 void Position::set_checkers_slow()
