@@ -441,12 +441,12 @@ bool Position::side_attacks(int side, int dest) const
     }
 
     for (const int orig : piece_list(WhiteKnight12 + side)) {
-        if (delta_type(orig, dest) & KnightFlag256)
+        if (pseudo_attack(orig, dest, KnightFlag256))
             return true;
     }
 
     for (const int orig : piece_list(WhiteBishop12 + side)) {
-        if (!(delta_type(orig, dest) & BishopFlag256))
+        if (!pseudo_attack(orig, dest, BishopFlag256))
             continue;
 
         int inc = delta_inc(dest, orig);
@@ -459,7 +459,7 @@ bool Position::side_attacks(int side, int dest) const
     }
 
     for (const int orig : piece_list(WhiteRook12 + side)) {
-        if (!(delta_type(orig, dest) & RookFlag256))
+        if (!pseudo_attack(orig, dest, RookFlag256))
             continue;
 
         int inc = delta_inc(dest, orig);
@@ -472,7 +472,7 @@ bool Position::side_attacks(int side, int dest) const
     }
     
     for (const int orig : piece_list(WhiteQueen12 + side)) {
-        if (!(delta_type(orig, dest) & QueenFlags256))
+        if (!pseudo_attack(orig, dest, QueenFlags256))
             continue;
 
         int inc = delta_inc(dest, orig);
@@ -657,12 +657,28 @@ void Position::set_checkers_fast(const Move& move)
 
     const int orig = move.orig();
     const int dest = move.dest();
+
+    const int oside = flip_side(side_);
+
+    const u8 oflag = make_flag(oside);
+    
+    u8 piece256;
+
+    int sq;
     
     if (move.is_castle()) {
         int rook = dest > orig ? orig + 1 : orig - 1;
 
-        if (piece_attacks(rook, king))
-            checkers_sq_[checkers_count_++] = rook;
+        if (pseudo_attack(king, rook, RookFlag256)) {
+            const int inc = delta_inc(king, rook);
+
+            sq = king + inc;
+
+            while (square(sq) == PieceNone256) sq += inc;
+
+            if (sq == rook)
+                checkers_sq_[checkers_count_++] = rook;
+        }
 
         return;
     }
@@ -673,29 +689,36 @@ void Position::set_checkers_fast(const Move& move)
         return;
     }
     
-    const int inc = delta_inc(king, orig);
+    const int oinc = delta_inc(king, orig);
+    const int dinc = delta_inc(king, dest);
 
     // revealed check?
 
-    if (inc != delta_inc(king, dest)) {
-        if (delta_type(inc) & QueenFlags256) {
-            const u8 oflag = make_flag(flip_side(side_));
+    if (oinc != dinc) {
+        if (delta_type(oinc) & QueenFlags256) {
+            sq = king + oinc;
 
-            int sq = king + inc;
-            
-            u8 piece256;
-
-            while ((piece256 = square(sq)) == PieceNone256) sq += inc;
+            while ((piece256 = square(sq)) == PieceNone256) sq += oinc;
 
             if ((piece256 & oflag) && pseudo_attack(sq, king, piece256))
                 checkers_sq_[checkers_count_++] = sq;
         }
     }
 
-    // direct check?
+    piece256 = square(dest);
 
-    if (piece_attacks(dest, king))
+    if (pseudo_attack(dest, king, piece256)) {
+        if (is_slider(piece256)) {
+            sq = king + dinc;
+            
+            while (square(sq) == PieceNone256) sq += dinc;
+
+            if (sq != dest)
+                return;
+        }
+        
         checkers_sq_[checkers_count_++] = dest;
+    }
 }
 
 bool Position::is_empty(int orig, int dest) const
