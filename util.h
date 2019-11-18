@@ -17,11 +17,18 @@ namespace Util {
         inline bool        empty() const { return size_ == 0; }
         inline void        clear()       { size_ = 0; }
 
-        inline void add(T value)
+        inline void add(T& value)
         {
             assert(size_ < N);
 
             data_[size_++] = value;
+        }
+
+        inline void add(T&& value)
+        {
+            assert(size_ < N);
+
+            data_[size_++] = std::move(value);
         }
 
         inline std::size_t find(T value) const

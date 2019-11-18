@@ -38,6 +38,7 @@ public:
     {
         assert(sq88_is_ok(orig));
         assert(sq88_is_ok(dest));
+        assert(!is_king(capture_piece));
 
         data_ = (capture_piece << 14) | (dest << 7) | orig;
     }

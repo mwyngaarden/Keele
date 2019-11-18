@@ -717,3 +717,156 @@ bool Position::is_empty(int orig, int dest) const
 
     return false;
 }
+
+bool Position::move_is_legal(const Move& move) const
+{
+    assert(checkers_count_ == 0);
+
+    const int king = king_sq();
+
+    assert(move.orig() != king);
+
+    if (move.is_ep()) 
+        return move_is_legal_ep(move);
+
+    const int orig = move.orig();
+    const int dest = move.dest();
+
+    if (!pseudo_attack(orig, king, QueenFlags256))
+        return true;
+
+    if (!is_empty(orig, king))
+        return true;
+
+    const int pin_inc = delta_inc(king, orig);
+    const int move_inc = delta_inc(orig, dest);
+
+    if (abs(move_inc) == abs(pin_inc))
+        return true;
+    
+    const int mside = side_;
+    const int oside = flip_side(side_);
+
+    const u8 oflag = make_flag(oside);
+
+    int sq = orig;
+    
+    u8 piece256;
+
+    do {
+        sq += pin_inc;
+    } while ((piece256 = square(sq)) == PieceNone256);
+
+    if ((piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256))
+        return true;
+
+    return false;
+}
+
+bool Position::move_is_legal_ep(const Move& move) const
+{
+    assert(move.is_ep());
+    assert(checkers_count_ == 0);
+
+    const int king = king_sq();
+
+    assert(move.orig() != king);
+
+    const int orig = move.orig();
+    const int dest = move.dest();
+
+    const int mside = side_;
+    const int oside = flip_side(side_);
+    
+    const int inc = pawn_inc(mside);
+    const int cap = dest - inc;
+
+    const u8 oflag = make_flag(oside);
+
+    const int king_rank = sq88_rank(king);
+    const int orig_rank = sq88_rank(orig);
+    const int cap_rank  = sq88_rank(cap);
+
+    assert(orig_rank == cap_rank);
+
+    const int orig_inc = delta_inc(king, orig);
+    const int move_inc = orig - dest;
+    const int cap_inc = delta_inc(king, cap);
+
+    assert(abs(move_inc) == 15 || abs(move_inc) == 17);
+    
+    u8 piece256;
+
+    //  king on same rank of capturing and captured pawn?
+
+    if (king_rank == orig_rank) {
+        assert(king_rank == cap_rank);
+        assert(orig_inc == cap_inc);
+
+        int sq = king;
+
+        // skip both pawns on rank
+
+        do { sq += orig_inc; } while (sq == orig || sq == cap || (piece256 = square(sq)) == PieceNone256);
+
+        // revealed checks not possible on any file or diagonal
+
+        return (piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256);
+    }
+
+    // king on same diagonal of capturing pawn?
+
+    if (pseudo_attack(king, orig, BishopFlag256)) {
+
+        // same diagonal of capture line?
+
+        if (orig_inc == move_inc || orig_inc == -move_inc)
+            return true;
+
+        if (!is_empty(king, orig))
+            return true;
+
+        int sq = orig;
+
+        do { sq += orig_inc; } while ((piece256 = square(sq)) == PieceNone256);
+
+        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+            return false;
+    }
+    
+    // king on same diagonal of captured pawn?
+
+    if (pseudo_attack(king, cap, BishopFlag256)) {
+        if (!is_empty(king, cap))
+            return true;
+
+        int sq = cap;
+
+        do { sq += cap_inc; } while ((piece256 = square(sq)) == PieceNone256);
+
+        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+            return false;
+    }
+
+    const int king_file = sq88_file(king);
+    const int orig_file = sq88_file(orig);
+    const int dest_inc = delta_inc(king, dest);
+
+    //  king on same file of capturing pawn?
+    
+    if (king_file == orig_file) {
+        assert(abs(orig_inc) == 16);
+
+        if (!is_empty(king, orig))
+            return true;
+
+        int sq = orig;
+
+        do { sq += orig_inc; } while ((piece256 = square(sq)) == PieceNone256);
+
+        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+            return false;
+    }
+
+    return true;
+}

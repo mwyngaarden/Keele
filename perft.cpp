@@ -58,7 +58,8 @@ struct Perft {
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
-    //Perft("8/2p5/3p4/KP5r/4P2k/8/6p1/7R b - - 1 3", 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    
+    Perft("8/2p5/3p4/KP5r/1R3p1k/4P3/6P1/8 b - - 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
 
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
@@ -183,7 +184,9 @@ int64_t perft(Position& pos,
     //if (depth == 1) return total_moves;
     
     for (const Move& m : moves) {
-        bool king_move = false; //is_king(pos.at(m.orig()));
+        bool king_move = is_king(pos.at(m.orig()));
+
+        bool is_legal = king_move || evasion || pos.move_is_legal(m);
 
         Undo undo;
 
@@ -191,13 +194,15 @@ int64_t perft(Position& pos,
             
         int side = pos.side();
 
-        bool is_legal = king_move || evasion || !pos.side_attacks(side, pos.king_sq(flip_side(side)));
+        //bool is_legal = king_move || evasion || !pos.side_attacks(side, pos.king_sq(flip_side(side)));
 
         //assert(!king || (king && !incheck));
 
         if (is_legal) {
 
             //if (height == 0) cout << move_to_string(m);
+
+            assert(!pos.side_attacks(side, pos.king_sq(flip_side(side))));
 
             int64_t pmoves = perft(pos,
                                    depth - 1,

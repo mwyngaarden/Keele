@@ -274,7 +274,7 @@ void gen_king_moves(MoveList& moves, const Position& pos)
             //moves.add(Move(king, dest, piece));
 
         if (piece == PieceNone256 || (piece & oflag))
-            //if (!pos.side_attacks(oside, dest))
+            if (!pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
 }
@@ -332,8 +332,6 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     
     const u8 mflag = make_flag(mside);
     const u8 oflag = make_flag(oside);
-
-    //cout << pos.dump() << endl; exit(0);
 
     for (auto inc : QueenIncs) {
         if (inc == -inc1 || inc == -inc2)

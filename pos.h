@@ -52,6 +52,9 @@ public:
 
     bool ep_is_valid() const;
 
+    bool move_is_legal(const Move& move) const;
+    bool move_is_legal_ep(const Move& move) const;
+
     bool side_attacks(int side, int dest) const;
     bool piece_attacks(int orig, int dest) const;
 
