@@ -16,7 +16,7 @@ static void gen_bishop_moves    (MoveList& moves, const Position& pos, const int
 static void gen_rook_moves      (MoveList& moves, const Position& pos, const int orig);
 static void gen_queen_moves     (MoveList& moves, const Position& pos, const int orig);
 
-static void gen_king_castles    (MoveList& moves, const Position& pos);
+static void gen_castling_moves  (MoveList& moves, const Position& pos);
 static void gen_king_moves      (MoveList& moves, const Position& pos);
 
 static void gen_piece_moves     (MoveList& moves, const Position& pos, const int dest, const BitSet& pins);
@@ -65,17 +65,12 @@ void gen_init()
 
 size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 {
-    //assert(pos.is_ok() == 0);
+    assert(pos.checkers() == 0);
 
     const int side = pos.side();
 
     gen_king_moves(moves, pos);
-    
-    if (pos.checkers() == 2)
-        return moves.size();
-
-    if (pos.checkers() == 0)
-        gen_king_castles(moves, pos);
+    gen_castling_moves(moves, pos);
 
     for (auto orig : pos.piece_list(PieceList12[side][Pawn]))
         gen_pawn_moves(moves, pos, orig);
@@ -270,18 +265,15 @@ void gen_king_moves(MoveList& moves, const Position& pos)
 
         const u8 piece = pos[dest];
 
-        //if (piece == PieceNone256 || (piece & oflag))
-            //moves.add(Move(king, dest, piece));
-
         if (piece == PieceNone256 || (piece & oflag))
             if (!pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
 }
 
-void gen_king_castles(MoveList& moves, const Position& pos)
+void gen_castling_moves(MoveList& moves, const Position& pos)
 {
-    int king = pos.king_sq();
+    const int king = pos.king_sq();
 
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
@@ -289,25 +281,18 @@ void gen_king_castles(MoveList& moves, const Position& pos)
     const int oside = flip_side(pos.side());
     
     if (pos.can_castle_k()) {
-        if (   pos.is_empty(king + 1)
-            && pos.is_empty(king + 2)) {
+        if (pos.is_empty(king + 1) && pos.is_empty(king + 2)) {
+            bool legal = !pos.side_attacks(oside, king + 1) && !pos.side_attacks(oside, king + 2);
 
-            bool check = pos.side_attacks(oside, king + 1)
-                      || pos.side_attacks(oside, king + 2);
-
-            if (!check)
+            if (legal)
                 moves.add(Move(king, king + 2) | Move::CastleFlag);
         }
     }
     if (pos.can_castle_q()) {
-        if (   pos.is_empty(king - 1)
-            && pos.is_empty(king - 2)
-            && pos.is_empty(king - 3)) {
+        if (pos.is_empty(king - 1) && pos.is_empty(king - 2) && pos.is_empty(king - 3)) {
+            bool legal = !pos.side_attacks(oside, king - 1) && !pos.side_attacks(oside, king - 2);
 
-            bool check = pos.side_attacks(oside, king - 1)
-                      || pos.side_attacks(oside, king - 2);
-
-            if (!check)
+            if (legal)
                 moves.add(Move(king, king - 2) | Move::CastleFlag);
         }
     }
@@ -330,7 +315,6 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const int mside = pos.side();
     const int oside = flip_side(pos.side());
     
-    const u8 mflag = make_flag(mside);
     const u8 oflag = make_flag(oside);
 
     for (auto inc : QueenIncs) {
@@ -496,14 +480,10 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
 void gen_pawn_moves(MoveList& moves, const Position& pos, const int dest, const BitSet& pins)
 {
     const int mside = pos.side();
-    const int oside = flip_side(pos.side());
-
     const int inc = pawn_inc(mside);
+    const int rank = sq88_rank(dest, mside);
 
     const u8 mpawn = make_pawn(mside);
-    const u8 opawn = make_pawn(oside);
-
-    const int rank = sq88_rank(dest, mside);
         
     int orig;
 

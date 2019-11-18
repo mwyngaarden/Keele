@@ -58,9 +58,6 @@ struct Perft {
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
 
 std::vector<Perft> Fens {
-    
-    Perft("8/2p5/3p4/KP5r/1R3p1k/4P3/6P1/8 b - - 0 1", 1, 1, 1, 1, 1, 1, 1, 1, 1),
-
     Perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -", 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 123456789, 123456789),
 
     Perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 48, 2039, 97862, 4085603, 193690690, 8031647685),
@@ -179,30 +176,32 @@ int64_t perft(Position& pos,
     int64_t legal_moves = 0;
     int64_t total_moves = pos.checkers() > 0 ? gen_evasion_moves(moves, pos) : gen_pseudo_moves(moves, pos);
     bool evasion = pos.checkers() > 0;
-    //int64_t total_moves = gen_pseudo_moves(moves, pos);
-    
-    //if (depth == 1) return total_moves;
     
     for (const Move& m : moves) {
         bool king_move = is_king(pos.at(m.orig()));
 
         bool is_legal = king_move || evasion || pos.move_is_legal(m);
 
-        Undo undo;
-
-        pos.make_move(m, undo);
-            
-        int side = pos.side();
 
         //bool is_legal = king_move || evasion || !pos.side_attacks(side, pos.king_sq(flip_side(side)));
 
         //assert(!king || (king && !incheck));
 
         if (is_legal) {
+            if (depth == 1) {
+                legal_moves++;
+                continue;
+            }
+
+            Undo undo;
+
+            pos.make_move(m, undo);
+                
+            // int side = pos.side();
 
             //if (height == 0) cout << move_to_string(m);
 
-            assert(!pos.side_attacks(side, pos.king_sq(flip_side(side))));
+            // assert(!pos.side_attacks(side, pos.king_sq(flip_side(side))));
 
             int64_t pmoves = perft(pos,
                                    depth - 1,
@@ -216,11 +215,11 @@ int64_t perft(Position& pos,
             //if (height == 0) cout << " = " << pmoves << endl;
             
             legal_moves += pmoves;
+        
+            pos.unmake_move(m, undo);
         }
         else
             ++illegal_moves;
-
-        pos.unmake_move(m, undo);
     }
 
     if (depth == 1 && legal_moves == 0)

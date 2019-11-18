@@ -744,7 +744,6 @@ bool Position::move_is_legal(const Move& move) const
     if (abs(move_inc) == abs(pin_inc))
         return true;
     
-    const int mside = side_;
     const int oside = flip_side(side_);
 
     const u8 oflag = make_flag(oside);
@@ -753,9 +752,7 @@ bool Position::move_is_legal(const Move& move) const
     
     u8 piece256;
 
-    do {
-        sq += pin_inc;
-    } while ((piece256 = square(sq)) == PieceNone256);
+    do { sq += pin_inc; } while ((piece256 = square(sq)) == PieceNone256);
 
     if ((piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256))
         return true;
@@ -785,9 +782,6 @@ bool Position::move_is_legal_ep(const Move& move) const
 
     const int king_rank = sq88_rank(king);
     const int orig_rank = sq88_rank(orig);
-    const int cap_rank  = sq88_rank(cap);
-
-    assert(orig_rank == cap_rank);
 
     const int orig_inc = delta_inc(king, orig);
     const int move_inc = orig - dest;
@@ -800,7 +794,6 @@ bool Position::move_is_legal_ep(const Move& move) const
     //  king on same rank of capturing and captured pawn?
 
     if (king_rank == orig_rank) {
-        assert(king_rank == cap_rank);
         assert(orig_inc == cap_inc);
 
         int sq = king;
@@ -850,7 +843,6 @@ bool Position::move_is_legal_ep(const Move& move) const
 
     const int king_file = sq88_file(king);
     const int orig_file = sq88_file(orig);
-    const int dest_inc = delta_inc(king, dest);
 
     //  king on same file of capturing pawn?
     
@@ -864,7 +856,7 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         do { sq += orig_inc; } while ((piece256 = square(sq)) == PieceNone256);
 
-        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+        if ((piece256 & oflag) && (piece256 & RookFlag256))
             return false;
     }
 
