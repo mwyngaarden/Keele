@@ -2,7 +2,7 @@
 # The name of the executable to be created
 BIN_NAME := keele
 # Compiler used
-CXX ?= g++
+CXX ?= clang++
 # Extension of source files used in the project
 SRC_EXT = cpp
 # Path to the source directory, relative to the makefile
@@ -13,7 +13,7 @@ LIBS =
 COMPILE_FLAGS = -std=c++17 -Wall -Wextra -pedantic
 
 # Additional release-specific flags
-RCOMPILE_FLAGS = -O3 -flto -march=native -DNDEBUG -fno-exceptions -fno-rtti
+RCOMPILE_FLAGS = -Ofast -flto -march=native -DNDEBUG -fno-exceptions -fno-rtti
 #RCOMPILE_FLAGS = -ggdb3 -O1 -march=native -DNDEBUG
 
 # Additional debug-specific flags

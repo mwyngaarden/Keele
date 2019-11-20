@@ -71,90 +71,23 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
     assert(pos.checkers() == 0);
 
     const int mside = pos.side();
-    const int oside = flip_side(pos.side());
     
-    const int king = pos.king_sq();
-
-    const u8 mflag = make_flag(mside);
-    
-    u8 piece256;
-
-    BitSet pins;
-
-    int sq1;
-    int sq2;
-    int inc;
-
     gen_king_moves(moves, pos, true);
 
-    /*
-    for (int p12 = WhiteBishop12 + oside; p12 <= BlackQueen12; p12 += 2) {
-        for (const int orig : pos.piece_list(p12)) {
-            assert(sq88_is_ok(orig));
-
-            piece256 = pos[orig];
-
-            if (!pseudo_attack(king, orig, piece256))
-                continue;
-
-            inc = delta_inc(king, orig);
-            sq1 = king + inc;
-
-            while ((piece256 = pos[sq1]) == PieceNone256) sq1 += inc;
-            
-            assert(sq88_is_ok(sq1));
-
-            if ((piece256 & mflag) == 0)
-                continue;
-
-            // skip pawns only
-
-            if (is_pawn(piece256))
-                continue;
-
-            sq2 = orig - inc;
-
-            while ((piece256 = pos[sq2]) == PieceNone256) sq2 -= inc;
-
-            assert(sq88_is_ok(sq2));
-
-            if (sq1 != sq2)
-                continue;
-            
-            if (pseudo_attack(sq1, orig, piece256)) {
-    asdfasf
-
-
-
-                continue;
-            }
-                
-            pins.set(sq1);
-        }
-    }
-    */
-    
-
-
-    for (auto orig : pos.piece_list(PieceList12[mside][Pawn])) {
+    for (auto orig : pos.piece_list(PieceList12[mside][Pawn]))
         gen_pawn_moves(moves, pos, orig);
-    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Knight])) {
+    for (auto orig : pos.piece_list(PieceList12[mside][Knight]))
         gen_knight_moves(moves, pos, orig);
-    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Bishop])) {
+    for (auto orig : pos.piece_list(PieceList12[mside][Bishop]))
         gen_bishop_moves(moves, pos, orig);
-    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Rook])) {
+    for (auto orig : pos.piece_list(PieceList12[mside][Rook]))
         gen_rook_moves(moves, pos, orig);
-    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Queen])) {
+    for (auto orig : pos.piece_list(PieceList12[mside][Queen]))
         gen_queen_moves(moves, pos, orig);
-    }
 
     return moves.size();
 }

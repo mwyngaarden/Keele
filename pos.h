@@ -37,7 +37,7 @@ public:
 
     std::string to_fen() const;
 
-    int is_ok(bool incheck = true) const;
+    int is_ok(bool check_test = true) const;
 
     uint64_t      key() const { return key_; }
     uint64_t calc_key() const;
@@ -48,6 +48,8 @@ public:
 
     bool move_is_legal(const Move& move) const;
     bool move_is_legal_ep(const Move& move) const;
+
+    bool move_is_irreversible(const Move& move) const;
 
     bool side_attacks(int side, int dest) const;
     bool piece_attacks(int orig, int dest) const;

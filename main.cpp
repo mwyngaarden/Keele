@@ -46,23 +46,25 @@ int main(int argc, char *argv[])
     gen_init();
     hash_init();
 
-    if (argc != 3) {
+    if (argc == 1) {
         validate_hash();
 
         return EXIT_SUCCESS;
     }
 
+    assert(argc >= 2);
+
     int depth = stoi(argv[1]); 
-    int pos = stoi(argv[2]); 
+    bool startpos = argc == 3;
     
     int64_t illegal_moves = 0;
-    int64_t ns = 0;
+    int64_t total_microseconds = 0;
 
-    int64_t nodes = perft(depth, pos, illegal_moves, ns);
+    int64_t nodes = perft(depth, illegal_moves, total_microseconds, startpos);
 
     cout << "nodes: " << nodes << endl;
-    cout << "milliseconds: " << double(ns) / 1000.0 << endl;
-    cout << "knps: " << 1000.0 * double(nodes) / double(ns) << endl;
+    cout << "milliseconds: " << double(total_microseconds) / 1000.0 << endl;
+    cout << "knps: " << 1000.0 * double(nodes) / double(total_microseconds) << endl;
     cout << "illegal moves: " << illegal_moves << " (" << 100.0 * illegal_moves / nodes << " %)" << endl;
 
 	return EXIT_SUCCESS;

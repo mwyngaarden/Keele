@@ -3,7 +3,6 @@ build/
 *.gcda
 .debug_time
 .release_time
-a.out
 keele
 perf.data
 tags

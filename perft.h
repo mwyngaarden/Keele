@@ -5,6 +5,6 @@
 #include <vector>
 #include <cstdint>
 
-int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns);
+int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, bool startpos);
 
 #endif

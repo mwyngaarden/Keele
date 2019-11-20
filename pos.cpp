@@ -16,7 +16,7 @@
 #include "types.h"
 using namespace std;
 
-static constexpr bool UpdateKey = false;
+static constexpr bool UpdateKey = true;
 
 Position::Position(const string& fen)
 {
@@ -193,30 +193,31 @@ void Position::make_move(const Move& move, Undo& undo)
         key_ ^= hash_side(side_);
     }
 
-    int orig = move.orig();
-    int dest = move.dest();
+    const int orig = move.orig();
+    const int dest = move.dest();
 
-    int piece256 = square(orig);
+    const int piece256 = square(orig);
         
-    int inc = pawn_inc(side_);
+    const int inc = pawn_inc(side_);
+
+    const bool irreversible = is_pawn(piece256) || move.is_capture();
 
     if (move.is_castle()) {
-        int rook_orig = dest > orig ? orig + 3 : orig - 4;
-        int rook_dest = dest > orig ? orig + 1 : orig - 1;
+        int rorig = dest > orig ? orig + 3 : orig - 4;
+        int rdest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece(orig, dest, UpdateKey);
-        mov_piece(rook_orig, rook_dest, UpdateKey);
+        mov_piece( orig,  dest, UpdateKey);
+        mov_piece(rorig, rdest, UpdateKey);
     }
     else if (move.is_ep()) {
+        assert(dest == ep_sq_);
+
         rem_piece(dest - inc, UpdateKey);
         mov_piece(orig, dest, UpdateKey);
     }
     else {
-        if (move.is_capture()) {
+        if (move.is_capture())
             rem_piece(dest, UpdateKey);
-
-            flags_ &= castle_flag(dest);
-        }
         
         if (move.is_promo()) {
             rem_piece(orig, UpdateKey);
@@ -225,17 +226,22 @@ void Position::make_move(const Move& move, Undo& undo)
         else
             mov_piece(orig, dest, UpdateKey);
     }
-        
-    flags_ &= castle_flag(orig);
+       
+    flags_ &= castle_flag(orig) & castle_flag(dest);
     ep_sq_ = move.is_double() ? dest - inc : SquareNone;
-    half_moves_  = is_pawn(piece256) || move.is_capture() ? 0 : half_moves_ + 1;
+
+    half_moves_  = irreversible ? 0 : half_moves_ + 1;
     full_moves_ += side_;
     
     side_ = flip_side(side_);
 
-    checkers_count_ = 0;
+    // update checkers
 
+    checkers_count_ = 0;
+    
     set_checkers_fast(move);
+
+    // update key, pst scores, etc.
 
     if (UpdateKey) {
         key_ ^= hash_castle(flags_);
@@ -259,11 +265,11 @@ void Position::unmake_move(const Move& move, const Undo& undo)
     const int dest = move.dest();
 
     if (move.is_castle()) {
-        int rook_orig = dest > orig ? orig + 3 : orig - 4;
-        int rook_dest = dest > orig ? orig + 1 : orig - 1;
+        int rorig = dest > orig ? orig + 3 : orig - 4;
+        int rdest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece(dest, orig);
-        mov_piece(rook_dest, rook_orig);
+        mov_piece( dest,  orig);
+        mov_piece(rdest, rorig);
     }
     else if (move.is_ep()) {
         const int inc = pawn_inc(side_);
@@ -286,11 +292,8 @@ void Position::unmake_move(const Move& move, const Undo& undo)
     side_ = flip_side(side_);
 }
 
-int Position::is_ok(bool incheck) const
+int Position::is_ok(bool check_test) const
 {
-    if (!side_is_ok(side_))
-        return __LINE__;
-        
     if (piece_list_[WhiteKing12].size() != 1) return __LINE__;
     if (piece_list_[BlackKing12].size() != 1) return __LINE__;
     
@@ -346,10 +349,10 @@ int Position::is_ok(bool incheck) const
             return __LINE__;
     }
 
-    if (incheck && side_attacks(side_, king_sq(flip_side(side_))))
+    if (check_test && side_attacks(side_, king_sq(flip_side(side_))))
         return __LINE__;
 
-    if (flags_ < 0 && flags_ >= 16)
+    if (flags_ < 0 || flags_ >= 16)
         return __LINE__;
 
     if (ep_sq_ != SquareNone) {
@@ -683,22 +686,28 @@ void Position::set_checkers_slow()
     assert(checkers_count_ == 0);
 
     const int king = king_sq();
-
     const int oside = flip_side(side_);
 
-    {
-        const u8 opawn = make_pawn(oside);
+    const u8 opawn = make_pawn(oside);
 
-        const int inc = pawn_inc(oside);
+    const int inc = pawn_inc(oside);
 
-        if (int orig = king - inc - 1; square(orig) == opawn) checkers_sq_[checkers_count_++] = orig;
-        if (int orig = king - inc + 1; square(orig) == opawn) checkers_sq_[checkers_count_++] = orig;
-    }
+    if (const int orig = king - inc - 1; square(orig) == opawn)
+        checkers_sq_[checkers_count_++] = orig;
+    if (const int orig = king - inc + 1; square(orig) == opawn)
+        checkers_sq_[checkers_count_++] = orig;
 
-    for (int p12 = WhiteKnight12 + oside; p12 <= BlackQueen12; p12 += 2)
-        for (const int orig : piece_list_[p12])
-            if (piece_attacks(orig, king))
+    for (int p12 = WhiteKnight12 + oside; p12 <= BlackQueen12; p12 += 2) {
+        for (const int orig : piece_list_[p12]) {
+            if (piece_attacks(orig, king)) {
+                assert(checkers_count_ < 2);
+
                 checkers_sq_[checkers_count_++] = orig;
+            }
+        }
+    }
+                
+    assert(checkers_count_ <= 2);
 }
 
 void Position::set_checkers_fast(const Move& move)
@@ -706,7 +715,6 @@ void Position::set_checkers_fast(const Move& move)
     assert(checkers_count_ == 0);
 
     const int king = king_sq();
-
     const int orig = move.orig();
     const int dest = move.dest();
 
@@ -714,12 +722,10 @@ void Position::set_checkers_fast(const Move& move)
 
     const u8 oflag = make_flag(oside);
     
-    u8 piece256;
-
     int sq;
     
     if (move.is_castle()) {
-        int rook = dest > orig ? orig + 1 : orig - 1;
+        const int rook = dest > orig ? orig + 1 : orig - 1;
 
         if (pseudo_attack(king, rook, RookFlag256)) {
             const int inc = delta_inc(king, rook);
@@ -744,6 +750,8 @@ void Position::set_checkers_fast(const Move& move)
     const int oinc = delta_inc(king, orig);
     const int dinc = delta_inc(king, dest);
 
+    u8 piece256;
+
     // revealed check?
 
     if (oinc != dinc) {
@@ -756,6 +764,8 @@ void Position::set_checkers_fast(const Move& move)
                 checkers_sq_[checkers_count_++] = sq;
         }
     }
+
+    // direct check?
 
     piece256 = square(dest);
 
@@ -798,9 +808,6 @@ bool Position::move_is_legal(const Move& move) const
     const int king = king_sq();
 
     if (move.orig() == king)
-        return true;
-
-    if (checkers_count_)
         return true;
 
     assert(move.orig() != king);
