@@ -395,7 +395,7 @@ void Position::rem_piece(int sq, bool update)
     assert(sq88_is_ok(sq));
     assert(!empty(sq));
 
-    u8 piece256 = square(sq);
+    const u8 piece256 = square(sq);
     
     assert(piece256_is_ok(piece256));
 
@@ -404,7 +404,7 @@ void Position::rem_piece(int sq, bool update)
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].remove(sq);
-   
+
     if (update)
         key_ ^= hash_piece(p12, sq);
 
@@ -418,7 +418,7 @@ void Position::mov_piece(int orig, int dest, bool update)
     assert(!empty(orig));
     assert(empty(dest));
 
-    u8 piece256 = square(orig);
+    const u8 piece256 = square(orig);
 
     assert(piece256_is_ok(piece256));
 

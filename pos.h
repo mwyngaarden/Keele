@@ -180,7 +180,7 @@ private:
     int checkers_sq_[2];
 
     u64 key_ = 0;
-    
+
     PieceList piece_list_[12];
 };
 
