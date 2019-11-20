@@ -31,24 +31,18 @@ public:
                                             | BlackCastleKFlag | WhiteCastleKFlag;
 
     Position(const std::string& fen = StartPos);
-
-    void init();
+    
+    void   make_move(const Move& move,       Undo& undo);
+    void unmake_move(const Move& move, const Undo& undo);
 
     std::string to_fen() const;
 
     int is_ok(bool incheck = true) const;
 
-    void   make_move(const Move& move,       Undo& undo);
-    void unmake_move(const Move& move, const Undo& undo);
-
     uint64_t      key() const { return key_; }
     uint64_t calc_key() const;
 
     void mark_pins(BitSet& pins) const;
-
-    void add_piece(int sq, u8 p, bool update_key);
-    void rem_piece(int sq, bool update_key);
-    void mov_piece(int orig, int dest, bool update_key);
 
     bool ep_is_valid() const;
 
@@ -65,7 +59,12 @@ public:
         return square_[36 + sq];
     }
 
-    inline const u8& operator[](int sq) const { return square(sq); }
+    inline const u8& operator[](int sq) const
+    {
+        assert(sq >= -36 && sq < 156);
+        
+        return square(sq);
+    }
     
     inline const u8& square(int sq) const
     {
@@ -74,14 +73,14 @@ public:
         return square_[36 + sq];
     }
 
-    inline bool is_empty(int sq) const
+    inline bool empty(int sq) const
     {
         assert(sq88_is_ok(sq));
 
         return square(sq) == PieceNone256;
     }
 
-    bool is_empty(int orig, int dest) const;
+    bool empty(int orig, int dest) const;
 
     inline bool is_op(int sq) const
     {
@@ -119,10 +118,7 @@ public:
         return piece_list_[WhiteKing12 + side][0];
     }
 
-    inline int king_sq() const
-    {
-        return king_sq(side_);
-    }
+    inline int king_sq() const { return king_sq(side_); }
 
     inline int side()                  const { return side_; }
     inline int ep_sq()                 const { return ep_sq_; }
@@ -143,7 +139,18 @@ public:
     inline int checkers()      const { return checkers_count_; }
     inline int checkers(int i) const { return checkers_sq_[i]; }
 
+    inline u8 pawn_file(int side, int file) const
+    { 
+        assert(side_is_ok(side));
+        assert(file >= -1 && file <= 8);
+
+        return pawn_file_[side][1 + file];
+    }
+
 private:
+    void add_piece(int sq, u8 piece256, bool update = false);
+    void rem_piece(int sq, bool update = false);
+    void mov_piece(int orig, int dest, bool update = false);
 
     void set_checkers_slow();
     void set_checkers_fast(const Move& move);
@@ -164,6 +171,8 @@ private:
     int ep_sq_ = SquareNone;
     int half_moves_ = 0;
     int full_moves_ = 1;
+
+    u8 pawn_file_[2][1 + 8 + 1];
 
     int checkers_sq_[2];
     int checkers_count_ = 0;

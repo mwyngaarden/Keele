@@ -87,6 +87,7 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 
     gen_king_moves(moves, pos, true);
 
+    /*
     for (int p12 = WhiteBishop12 + oside; p12 <= BlackQueen12; p12 += 2) {
         for (const int orig : pos.piece_list(p12)) {
             assert(sq88_is_ok(orig));
@@ -121,7 +122,7 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
                 continue;
             
             if (pseudo_attack(sq1, orig, piece256)) {
-                asdf
+    asdfasf
 
 
 
@@ -131,14 +132,29 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
             pins.set(sq1);
         }
     }
+    */
     
 
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Pawn])) gen_pawn_moves(moves, pos, orig);
-    for (auto orig : pos.piece_list(PieceList12[mside][Knight])) gen_knight_moves(moves, pos, orig);
-    for (auto orig : pos.piece_list(PieceList12[mside][Bishop])) gen_bishop_moves(moves, pos, orig);
-    for (auto orig : pos.piece_list(PieceList12[mside][Rook])) gen_rook_moves(moves, pos, orig);
-    for (auto orig : pos.piece_list(PieceList12[mside][Queen])) gen_queen_moves(moves, pos, orig);
+    for (auto orig : pos.piece_list(PieceList12[mside][Pawn])) {
+        gen_pawn_moves(moves, pos, orig);
+    }
+
+    for (auto orig : pos.piece_list(PieceList12[mside][Knight])) {
+        gen_knight_moves(moves, pos, orig);
+    }
+
+    for (auto orig : pos.piece_list(PieceList12[mside][Bishop])) {
+        gen_bishop_moves(moves, pos, orig);
+    }
+
+    for (auto orig : pos.piece_list(PieceList12[mside][Rook])) {
+        gen_rook_moves(moves, pos, orig);
+    }
+
+    for (auto orig : pos.piece_list(PieceList12[mside][Queen])) {
+        gen_queen_moves(moves, pos, orig);
+    }
 
     return moves.size();
 }
@@ -183,7 +199,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
             moves.add(m | Move::PromoQueenFlag);
         }
 
-        if (int dest = orig + inc; pos.is_empty(dest)) {
+        if (int dest = orig + inc; pos.empty(dest)) {
             Move m(orig, dest);
 
             moves.add(m | Move::PromoKnightFlag);
@@ -208,14 +224,14 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
 
         // single push
         
-        if (int dest = orig + inc; pos.is_empty(dest)) {
+        if (int dest = orig + inc; pos.empty(dest)) {
             moves.add(Move(orig, dest));
 
             // double push
 
             dest += inc;
 
-            if (rank == Rank2 && pos.is_empty(dest))
+            if (rank == Rank2 && pos.empty(dest))
                 moves.add(Move(orig, dest) | Move::DoubleFlag);
         }
     }
@@ -328,7 +344,7 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
             int king1 = king + 1;
             int king2 = king + 2;
 
-            if (pos.is_empty(king1) && pos.is_empty(king2)) {
+            if (pos.empty(king1) && pos.empty(king2)) {
                 bool legal = !pos.side_attacks(oside, king1) && !pos.side_attacks(oside, king2);
 
                 if (legal)
@@ -340,7 +356,7 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
             int king2 = king - 2;
             int king3 = king - 3;
 
-            if (pos.is_empty(king1) && pos.is_empty(king2) && pos.is_empty(king3)) {
+            if (pos.empty(king1) && pos.empty(king2) && pos.empty(king3)) {
                 bool legal = !pos.side_attacks(oside, king1) && !pos.side_attacks(oside, king2);
 
                 if (legal)
@@ -450,7 +466,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
             if (!pseudo_attack(orig, checker1, piece))
                 continue;
 
-            if (is_slider(piece) && !pos.is_empty(orig, checker1))
+            if (is_slider(piece) && !pos.empty(orig, checker1))
                 continue;
 
             moves.add(Move(orig, checker1, pos[checker1]));
@@ -492,7 +508,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
         if (!pseudo_attack(orig, dest, BishopFlag256))
             continue;
 
-        if (!pos.is_empty(orig, dest))
+        if (!pos.empty(orig, dest))
             continue;
 
         moves.add(Move(orig, dest, pos[dest]));
@@ -507,7 +523,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
         if (!pseudo_attack(orig, dest, RookFlag256))
             continue;
 
-        if (!pos.is_empty(orig, dest))
+        if (!pos.empty(orig, dest))
             continue;
 
         moves.add(Move(orig, dest, pos[dest]));
@@ -522,7 +538,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
         if (!pseudo_attack(orig, dest, QueenFlags256))
             continue;
 
-        if (!pos.is_empty(orig, dest))
+        if (!pos.empty(orig, dest))
             continue;
 
         moves.add(Move(orig, dest, pos[dest]));

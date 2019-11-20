@@ -16,17 +16,23 @@
 #include "types.h"
 using namespace std;
 
-void Position::init()
-{
-    fill(square_, square_ + 192, PieceInvalid256);
-
-    for (int i = 0; i < 64; i++)
-        square(to_sq88(i)) = PieceNone256;
-}
+static constexpr bool UpdateKey = false;
 
 Position::Position(const string& fen)
 {
-    init();
+    // init
+
+    for (int i = 0; i < 192; i++)
+        square_[i] = PieceInvalid256;
+
+    for (int i = 0; i < 64; i++)
+        square(to_sq88(i)) = PieceNone256;
+
+    for (int i = White; i <= Black; i++)
+        for (int j = 0; j < 10; j++)
+            pawn_file_[i][j] = 0;
+
+    // fen
 
     Tokenizer fields(fen, ' ');
 
@@ -61,7 +67,7 @@ Position::Position(const string& fen)
             file += c - '0';
             break;
         default:
-            add_piece(to_sq88(file, rank), char_to_piece256(c), true);
+            add_piece(to_sq88(file, rank), char_to_piece256(c), UpdateKey);
             file++;
             break;
         }
@@ -105,9 +111,11 @@ Position::Position(const string& fen)
 
     // key
 
-    key_ ^= hash_castle(flags_);
-    key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-    key_ ^= hash_side(side_);
+    if (UpdateKey) {
+        key_ ^= hash_castle(flags_);
+        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
+        key_ ^= hash_side(side_);
+    }
 
     assert(is_ok() == 0);
 }
@@ -179,9 +187,11 @@ void Position::make_move(const Move& move, Undo& undo)
     undo.checkers_sq[1] = checkers_sq_[1];
     undo.checkers_count = checkers_count_;
 
-    key_ ^= hash_castle(flags_);
-    key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-    key_ ^= hash_side(side_);
+    if (UpdateKey) {
+        key_ ^= hash_castle(flags_);
+        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
+        key_ ^= hash_side(side_);
+    }
 
     int orig = move.orig();
     int dest = move.dest();
@@ -194,26 +204,26 @@ void Position::make_move(const Move& move, Undo& undo)
         int rook_orig = dest > orig ? orig + 3 : orig - 4;
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece(orig, dest, true);
-        mov_piece(rook_orig, rook_dest, true);
+        mov_piece(orig, dest, UpdateKey);
+        mov_piece(rook_orig, rook_dest, UpdateKey);
     }
     else if (move.is_ep()) {
-        rem_piece(dest - inc, true);
-        mov_piece(orig, dest, true);
+        rem_piece(dest - inc, UpdateKey);
+        mov_piece(orig, dest, UpdateKey);
     }
     else {
         if (move.is_capture()) {
-            rem_piece(dest, true);
+            rem_piece(dest, UpdateKey);
 
             flags_ &= castle_flag(dest);
         }
         
         if (move.is_promo()) {
-            rem_piece(orig, true);
-            add_piece(dest, to_piece256(side_, move.promo_piece()), true);
+            rem_piece(orig, UpdateKey);
+            add_piece(dest, to_piece256(side_, move.promo_piece()), UpdateKey);
         }
         else
-            mov_piece(orig, dest, true);
+            mov_piece(orig, dest, UpdateKey);
     }
         
     flags_ &= castle_flag(orig);
@@ -227,9 +237,11 @@ void Position::make_move(const Move& move, Undo& undo)
 
     set_checkers_fast(move);
 
-    key_ ^= hash_castle(flags_);
-    key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-    key_ ^= hash_side(side_);
+    if (UpdateKey) {
+        key_ ^= hash_castle(flags_);
+        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
+        key_ ^= hash_side(side_);
+    }
 }
 
 void Position::unmake_move(const Move& move, const Undo& undo)
@@ -250,25 +262,25 @@ void Position::unmake_move(const Move& move, const Undo& undo)
         int rook_orig = dest > orig ? orig + 3 : orig - 4;
         int rook_dest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece(dest, orig, false);
-        mov_piece(rook_dest, rook_orig, false);
+        mov_piece(dest, orig);
+        mov_piece(rook_dest, rook_orig);
     }
     else if (move.is_ep()) {
         const int inc = pawn_inc(side_);
 
-        mov_piece(dest, orig, false);
-        add_piece(dest + inc, make_pawn(side_), false);
+        mov_piece(dest, orig);
+        add_piece(dest + inc, make_pawn(side_));
     }
     else {
         if (move.is_promo()) {
-            rem_piece(dest, false);
-            add_piece(orig, make_pawn(flip_side(side_)), false);
+            rem_piece(dest);
+            add_piece(orig, make_pawn(flip_side(side_)));
         }
         else
-            mov_piece(dest, orig, false);
+            mov_piece(dest, orig);
 
         if (move.is_capture())
-            add_piece(dest, move.capture_piece(), false);
+            add_piece(dest, move.capture_piece());
     }
 
     side_ = flip_side(side_);
@@ -357,10 +369,10 @@ int Position::is_ok(bool incheck) const
     return 0;
 }
 
-void Position::add_piece(int sq, u8 piece256, bool update_key)
+void Position::add_piece(int sq, u8 piece256, bool update)
 {
     assert(sq88_is_ok(sq));
-    assert(is_empty(sq));
+    assert(empty(sq));
     assert(piece256_is_ok(piece256));
 
     const int p12 = to_piece12(piece256);
@@ -369,16 +381,16 @@ void Position::add_piece(int sq, u8 piece256, bool update_key)
 
     piece_list_[p12].add(sq);
 
-    if (update_key)
+    if (update)
         key_ ^= hash_piece(p12, sq);
 
     square(sq) = piece256;
 }
 
-void Position::rem_piece(int sq, bool update_key)
+void Position::rem_piece(int sq, bool update)
 {
     assert(sq88_is_ok(sq));
-    assert(!is_empty(sq));
+    assert(!empty(sq));
 
     u8 piece256 = square(sq);
     
@@ -390,18 +402,18 @@ void Position::rem_piece(int sq, bool update_key)
     
     piece_list_[p12].remove(sq);
    
-    if (update_key)
+    if (update)
         key_ ^= hash_piece(p12, sq);
 
     square(sq) = PieceNone256;
 }
 
-void Position::mov_piece(int orig, int dest, bool update_key)
+void Position::mov_piece(int orig, int dest, bool update)
 {
     assert(sq88_is_ok(orig));
     assert(sq88_is_ok(dest));
-    assert(!is_empty(orig));
-    assert(is_empty(dest));
+    assert(!empty(orig));
+    assert(empty(dest));
 
     u8 piece256 = square(orig);
 
@@ -413,7 +425,7 @@ void Position::mov_piece(int orig, int dest, bool update_key)
     
     piece_list_[p12].replace(orig, dest);
 
-    if (update_key) {
+    if (update) {
         key_ ^= hash_piece(p12, orig);
         key_ ^= hash_piece(p12, dest);
     }
@@ -491,7 +503,7 @@ bool Position::piece_attacks(int orig, int dest) const
 {
     assert(sq88_is_ok(orig));
     assert(sq88_is_ok(dest));
-    assert(!is_empty(orig));
+    assert(!empty(orig));
 
     const u8 piece256 = square(orig);
 
@@ -500,7 +512,7 @@ bool Position::piece_attacks(int orig, int dest) const
     if (!pseudo_attack(orig, dest, piece256))
         return false;
 
-    return !is_slider(piece256) || is_empty(orig, dest);
+    return !is_slider(piece256) || empty(orig, dest);
 }
 
 string Position::dump() const
@@ -761,7 +773,7 @@ void Position::set_checkers_fast(const Move& move)
     }
 }
 
-bool Position::is_empty(int orig, int dest) const
+bool Position::empty(int orig, int dest) const
 {
     assert(sq88_is_ok(orig));
     assert(sq88_is_ok(dest));
@@ -783,11 +795,16 @@ bool Position::is_empty(int orig, int dest) const
 
 bool Position::move_is_legal(const Move& move) const
 {
-    assert(checkers_count_ == 0);
-
     const int king = king_sq();
 
+    if (move.orig() == king)
+        return true;
+
+    if (checkers_count_)
+        return true;
+
     assert(move.orig() != king);
+    assert(checkers_count_ == 0);
 
     if (move.is_ep()) 
         return move_is_legal_ep(move);
@@ -798,7 +815,7 @@ bool Position::move_is_legal(const Move& move) const
     if (!pseudo_attack(orig, king, QueenFlags256))
         return true;
 
-    if (!is_empty(orig, king))
+    if (!empty(orig, king))
         return true;
 
     const int pin_inc = delta_inc(king, orig);
@@ -879,7 +896,7 @@ bool Position::move_is_legal_ep(const Move& move) const
         if (orig_inc == move_inc || orig_inc == -move_inc)
             return true;
 
-        if (!is_empty(king, orig))
+        if (!empty(king, orig))
             return true;
 
         int sq = orig;
@@ -893,7 +910,7 @@ bool Position::move_is_legal_ep(const Move& move) const
     // king on same diagonal of captured pawn?
 
     if (pseudo_attack(king, cap, BishopFlag256)) {
-        if (!is_empty(king, cap))
+        if (!empty(king, cap))
             return true;
 
         int sq = cap;
@@ -912,7 +929,7 @@ bool Position::move_is_legal_ep(const Move& move) const
     if (king_file == orig_file) {
         assert(abs(orig_inc) == 16);
 
-        if (!is_empty(king, orig))
+        if (!empty(king, orig))
             return true;
 
         int sq = orig;

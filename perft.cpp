@@ -79,7 +79,6 @@ static int64_t perft(Position& pos, int depth, int height, int64_t& illegal_move
 int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 {
     int64_t nodes = 0;
-    int64_t nodes_diff = 0;
 
     for (int i = 0; i < int(Fens.size()); i++) {
         if (pos != -1 && i != pos)
@@ -93,7 +92,7 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         int64_t mates = 0;
 
         Position pos(pp.fen);
-
+        
         cout << pos.dump() << endl;
 
         auto t0 = chrono::high_resolution_clock::now();
@@ -107,8 +106,6 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
         ns += ns_local.count();
 
         int64_t want_nodes = pp.nodes[depth - 1];
-
-        nodes_diff += abs(want_nodes - have_nodes);
 
         nodes += have_nodes;
 
@@ -124,8 +121,6 @@ int64_t perft(int depth, int pos, int64_t& illegal_moves, int64_t& ns)
 
         cout << endl;
     }
-
-    cout << endl;
 
     return nodes;
 }
@@ -146,14 +141,12 @@ int64_t perft(Position& pos,
     else
         total_moves = gen_pseudo_moves(moves, pos);
     
-    bool evasion = pos.checkers() > 0;
-
     //if (depth == 1) return total_moves;
     
     for (const Move& m : moves) {
-        bool is_legal = evasion || is_king(pos.at(m.orig())) || pos.move_is_legal(m);
+        bool move_is_legal = pos.move_is_legal(m);
 
-        if (is_legal) {
+        if (move_is_legal) {
             if (depth == 1)
                 ++legal_moves;
             else {
@@ -161,9 +154,7 @@ int64_t perft(Position& pos,
 
                 pos.make_move(m, undo);
                     
-                int64_t pmoves = perft(pos, depth - 1, height + 1, illegal_moves, mates);
-
-                legal_moves += pmoves;
+                legal_moves += perft(pos, depth - 1, height + 1, illegal_moves, mates);
             
                 pos.unmake_move(m, undo);
             }
