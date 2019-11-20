@@ -16,7 +16,7 @@
 #include "types.h"
 using namespace std;
 
-static constexpr bool UpdateKey = true;
+static constexpr bool UpdateInfo = false;
 
 Position::Position(const string& fen)
 {
@@ -67,7 +67,7 @@ Position::Position(const string& fen)
             file += c - '0';
             break;
         default:
-            add_piece(to_sq88(file, rank), char_to_piece256(c), UpdateKey);
+            add_piece(to_sq88(file, rank), char_to_piece256(c), UpdateInfo);
             file++;
             break;
         }
@@ -111,7 +111,7 @@ Position::Position(const string& fen)
 
     // key
 
-    if (UpdateKey) {
+    if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
         key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
         key_ ^= hash_side(side_);
@@ -187,7 +187,7 @@ void Position::make_move(const Move& move, Undo& undo)
     undo.checkers_sq[1] = checkers_sq_[1];
     undo.checkers_count = checkers_count_;
 
-    if (UpdateKey) {
+    if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
         key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
         key_ ^= hash_side(side_);
@@ -201,30 +201,30 @@ void Position::make_move(const Move& move, Undo& undo)
     const int inc = pawn_inc(side_);
 
     const bool irreversible = is_pawn(piece256) || move.is_capture();
-
+        
     if (move.is_castle()) {
         int rorig = dest > orig ? orig + 3 : orig - 4;
         int rdest = dest > orig ? orig + 1 : orig - 1;
 
-        mov_piece( orig,  dest, UpdateKey);
-        mov_piece(rorig, rdest, UpdateKey);
+        mov_piece( orig,  dest, UpdateInfo);
+        mov_piece(rorig, rdest, UpdateInfo);
     }
     else if (move.is_ep()) {
         assert(dest == ep_sq_);
 
-        rem_piece(dest - inc, UpdateKey);
-        mov_piece(orig, dest, UpdateKey);
-    }
+        rem_piece(dest - inc, UpdateInfo);
+        mov_piece(orig, dest, UpdateInfo);
+    } 
     else {
         if (move.is_capture())
-            rem_piece(dest, UpdateKey);
-        
+            rem_piece(dest, UpdateInfo);
+
         if (move.is_promo()) {
-            rem_piece(orig, UpdateKey);
-            add_piece(dest, to_piece256(side_, move.promo_piece()), UpdateKey);
+            rem_piece(orig, UpdateInfo);
+            add_piece(dest, to_piece256(side_, move.promo_piece()), UpdateInfo);
         }
         else
-            mov_piece(orig, dest, UpdateKey);
+            mov_piece(orig, dest, UpdateInfo);
     }
        
     flags_ &= castle_flag(orig) & castle_flag(dest);
@@ -243,7 +243,7 @@ void Position::make_move(const Move& move, Undo& undo)
 
     // update key, pst scores, etc.
 
-    if (UpdateKey) {
+    if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
         key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
         key_ ^= hash_side(side_);
@@ -441,12 +441,12 @@ bool Position::side_attacks(int side, int dest) const
     assert(side_is_ok(side));
     assert(sq88_is_ok(dest));
 
-    int king = king_sq(side);
+    const int king = king_sq(side);
 
     if (pseudo_attack(king, dest, KingFlag256))
         return true;
 
-    u8 pawn256 = make_pawn(side);
+    const u8 pawn256 = make_pawn(side);
 
     {
         int inc = pawn_inc(side);
@@ -825,10 +825,10 @@ bool Position::move_is_legal(const Move& move) const
     if (!empty(orig, king))
         return true;
 
-    const int pin_inc = delta_inc(king, orig);
-    const int move_inc = delta_inc(orig, dest);
+    const int pinc = delta_inc(king, orig);
+    const int minc = delta_inc(orig, dest);
 
-    if (abs(move_inc) == abs(pin_inc))
+    if (abs(minc) == abs(pinc))
         return true;
     
     const int oside = flip_side(side_);
@@ -839,7 +839,7 @@ bool Position::move_is_legal(const Move& move) const
     
     u8 piece256;
 
-    do { sq += pin_inc; } while ((piece256 = square(sq)) == PieceNone256);
+    do { sq += pinc; } while ((piece256 = square(sq)) == PieceNone256);
 
     if ((piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256))
         return true;
@@ -860,34 +860,33 @@ bool Position::move_is_legal_ep(const Move& move) const
     const int dest = move.dest();
 
     const int mside = side_;
-    const int oside = flip_side(side_);
     
     const int inc = pawn_inc(mside);
     const int cap = dest - inc;
 
-    const u8 oflag = make_flag(oside);
+    const u8 oflag = make_flag(flip_side(mside));
 
-    const int king_rank = sq88_rank(king);
-    const int orig_rank = sq88_rank(orig);
+    const int krank = sq88_rank(king);
+    const int orank = sq88_rank(orig);
 
-    const int orig_inc = delta_inc(king, orig);
-    const int move_inc = orig - dest;
+    const int oinc = delta_inc(king, orig);
+    const int minc = orig - dest;
     const int cap_inc = delta_inc(king, cap);
 
-    assert(abs(move_inc) == 15 || abs(move_inc) == 17);
+    assert(abs(minc) == 15 || abs(minc) == 17);
     
     u8 piece256;
 
     //  king on same rank of capturing and captured pawn?
 
-    if (king_rank == orig_rank) {
-        assert(orig_inc == cap_inc);
+    if (krank == orank) {
+        assert(oinc == cap_inc);
 
         int sq = king;
 
         // skip both pawns on rank
 
-        do { sq += orig_inc; } while (sq == orig || sq == cap || (piece256 = square(sq)) == PieceNone256);
+        do { sq += oinc; } while (sq == orig || sq == cap || (piece256 = square(sq)) == PieceNone256);
 
         // revealed checks not possible on any file or diagonal
 
@@ -900,7 +899,7 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         // same diagonal of capture line?
 
-        if (orig_inc == move_inc || orig_inc == -move_inc)
+        if (oinc == minc || oinc == -minc)
             return true;
 
         if (!empty(king, orig))
@@ -908,7 +907,7 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         int sq = orig;
 
-        do { sq += orig_inc; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += oinc; } while ((piece256 = square(sq)) == PieceNone256);
 
         if ((piece256 & oflag) && (piece256 & BishopFlag256))
             return false;
@@ -934,14 +933,14 @@ bool Position::move_is_legal_ep(const Move& move) const
     //  king on same file of capturing pawn?
     
     if (king_file == orig_file) {
-        assert(abs(orig_inc) == 16);
+        assert(abs(oinc) == 16);
 
         if (!empty(king, orig))
             return true;
 
         int sq = orig;
 
-        do { sq += orig_inc; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += oinc; } while ((piece256 = square(sq)) == PieceNone256);
 
         if ((piece256 & oflag) && (piece256 & RookFlag256))
             return false;

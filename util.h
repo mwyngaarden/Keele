@@ -13,25 +13,26 @@ namespace Util {
         static constexpr std::size_t capacity() { return N; }
         static constexpr std::size_t max_size() { return N; }
 
-        inline std::size_t size()  const { return size_; }
-        inline bool        empty() const { return size_ == 0; }
-        inline void        clear()       { size_ = 0; }
+        std::size_t size() const { return size_; }
+        bool empty() const { return size_ == 0; }
 
-        inline void add(T& value)
+        void clear() { size_ = 0; }
+
+        void add(T& value)
         {
             assert(size_ < N);
 
             data_[size_++] = value;
         }
 
-        inline void add(T&& value)
+        void add(T&& value)
         {
             assert(size_ < N);
 
             data_[size_++] = std::move(value);
         }
 
-        inline std::size_t find(T value) const
+        std::size_t find(T value) const
         {
             for (std::size_t i = 0; i < size_; i++)
                 if (data_[i] == value)
@@ -40,7 +41,7 @@ namespace Util {
             return npos;
         }
 
-        inline void remove(T value)
+        void remove(T value)
         {
             assert(find(value) != npos);
 
@@ -51,7 +52,7 @@ namespace Util {
             *p = data_[--size_];
         }
             
-        inline void replace(T old_value, T new_value)
+        void replace(T old_value, T new_value)
         {
             assert(find(old_value) != npos);
             assert(find(new_value) == npos);
@@ -63,20 +64,20 @@ namespace Util {
             *p = new_value;
         }
 
-        inline T* begin() { return data_; } 
-        inline T* end() { return data_ + size_; }
+        T* begin() { return data_; } 
+        T* end() { return data_ + size_; }
 
-        inline const T* begin() const { return data_; } 
-        inline const T* end() const { return data_ + size_; }
+        const T* begin() const { return data_; } 
+        const T* end() const { return data_ + size_; }
 
-        inline T& operator[](std::size_t i)
+        T& operator[](std::size_t i)
         {
             assert(i < size_);
 
             return data_[i];
         }
         
-        inline const T& operator[](std::size_t i) const
+        const T& operator[](std::size_t i) const
         {
             assert(i < size_);
 

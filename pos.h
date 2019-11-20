@@ -61,21 +61,21 @@ public:
         return square_[36 + sq];
     }
 
-    inline const u8& operator[](int sq) const
+    const u8& operator[](int sq) const
     {
         assert(sq >= -36 && sq < 156);
         
         return square(sq);
     }
     
-    inline const u8& square(int sq) const
+    const u8& square(int sq) const
     {
         assert(sq >= -36 && sq < 156);
 
         return square_[36 + sq];
     }
 
-    inline bool empty(int sq) const
+    bool empty(int sq) const
     {
         assert(sq88_is_ok(sq));
 
@@ -84,21 +84,21 @@ public:
 
     bool empty(int orig, int dest) const;
 
-    inline bool is_op(int sq) const
+    bool is_op(int sq) const
     {
         assert(sq88_is_ok(sq));
 
         return square(sq) & (BlackFlag256 >> side_);
     }
 
-    inline bool is_me(int sq) const
+    bool is_me(int sq) const
     {
         assert(sq88_is_ok(sq));
 
         return square(sq) & (WhiteFlag256 << side_);
     }
 
-    inline bool is_piece(int sq, int piece) const
+    bool is_piece(int sq, int piece) const
     {
         assert(sq88_is_ok(sq));
         assert(piece_is_ok(piece));
@@ -106,42 +106,42 @@ public:
         return to_piece(square(sq)) == piece;
     }
 
-    inline const PieceList& piece_list(int p12) const
+    const PieceList& piece_list(int p12) const
     {
         assert(piece12_is_ok(p12));
 
         return piece_list_[p12];
     }
 
-    inline int king_sq(int side) const
+    int king_sq(int side) const
     {
         assert(side_is_ok(side));
 
         return piece_list_[WhiteKing12 + side][0];
     }
 
-    inline int king_sq() const { return king_sq(side_); }
+    int king_sq() const { return king_sq(side_); }
 
-    inline int side()                  const { return side_; }
-    inline int ep_sq()                 const { return ep_sq_; }
-    inline int half_moves()            const { return half_moves_; }
-    inline int full_moves()            const { return full_moves_; }
+    int side()                  const { return side_; }
+    int ep_sq()                 const { return ep_sq_; }
+    int half_moves()            const { return half_moves_; }
+    int full_moves()            const { return full_moves_; }
 
-    inline bool can_castle_k(int side) const { return (flags_ & (WhiteCastleKFlag << side)) != 0; }
-    inline bool can_castle_q(int side) const { return (flags_ & (WhiteCastleQFlag << side)) != 0; }
-    inline bool can_castle  (int side) const { return (flags_ & (WhiteCastleFlags << side)) != 0; }
-    inline bool can_castle_k()         const { return can_castle_k(side_); }
-    inline bool can_castle_q()         const { return can_castle_q(side_); }
-    inline bool can_castle  ()         const { return can_castle(side_); }
+    bool can_castle_k(int side) const { return (flags_ & (WhiteCastleKFlag << side)) != 0; }
+    bool can_castle_q(int side) const { return (flags_ & (WhiteCastleQFlag << side)) != 0; }
+    bool can_castle  (int side) const { return (flags_ & (WhiteCastleFlags << side)) != 0; }
+    bool can_castle_k()         const { return can_castle_k(side_); }
+    bool can_castle_q()         const { return can_castle_q(side_); }
+    bool can_castle  ()         const { return can_castle(side_); }
 
     // misc
     
     std::string dump() const;
 
-    inline int checkers()      const { return checkers_count_; }
-    inline int checkers(int i) const { return checkers_sq_[i]; }
+    int checkers()      const { return checkers_count_; }
+    int checkers(int i) const { return checkers_sq_[i]; }
 
-    inline u8 pawn_file(int side, int file) const
+    u8 pawn_file(int side, int file) const
     { 
         assert(side_is_ok(side));
         assert(file >= -1 && file <= 8);
@@ -157,9 +157,9 @@ private:
     void set_checkers_slow();
     void set_checkers_fast(const Move& move);
 
-    inline u8& operator[](int sq) { return square(sq); }
+    u8& operator[](int sq) { return square(sq); }
 
-    inline u8& square(int sq)
+    u8& square(int sq)
     {
         assert(sq >= -36 && sq < 156);
 
@@ -174,10 +174,10 @@ private:
     int half_moves_ = 0;
     int full_moves_ = 1;
 
-    u8 pawn_file_[2][1 + 8 + 1];
+    u8 pawn_file_[2][10];
 
-    int checkers_sq_[2];
     int checkers_count_ = 0;
+    int checkers_sq_[2];
 
     u64 key_ = 0;
     

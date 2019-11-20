@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+
+#include <x86intrin.h>
+
 #include "gen.h"
 #include "move.h"
 #include "perft.h"
@@ -62,7 +65,7 @@ string move_to_string(const Move& move)
 }
 
             
-int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, bool startpos)
+int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, int64_t& total_cycles, bool startpos)
 {
     int64_t nodes = 0;
 
@@ -77,14 +80,21 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, bo
         int64_t want_nodes = fi.nodes[depth - 1];
 
         auto t0 = chrono::high_resolution_clock::now();
+        
+        int64_t rdtsc0 = __rdtsc();
 
         int64_t have_nodes = perft(pos, depth, 0, illegal_moves, mates);
+
+        int64_t rdtsc1 = __rdtsc();
 
         auto t1 = chrono::high_resolution_clock::now();
 
         auto microseconds = chrono::duration_cast<chrono::microseconds>(t1 - t0);
+        
+        int64_t cycles = rdtsc1 - rdtsc0;
 
         total_microseconds += microseconds.count();
+        total_cycles += cycles;
         
         int64_t diff_nodes = have_nodes - want_nodes;
 
@@ -120,25 +130,31 @@ int64_t perft(Position& pos,
               int64_t& illegal_moves,
               int64_t& mates)
 {
+    if (depth == 0) return 1;
+
     MoveList moves;
 
     int64_t legal_moves = 0;
     int64_t total_moves;
+    bool evasions;
 
-    if (pos.checkers() > 0)
+    if (pos.checkers() > 0) {
         total_moves = gen_evasion_moves(moves, pos);
-    else
+        evasions = true;
+    }
+    else {
         total_moves = gen_pseudo_moves(moves, pos);
-    
-    //if (depth == 1) return total_moves;
-    
-    for (const Move& m : moves) {
-        bool move_is_legal = pos.move_is_legal(m);
+        evasions = false;
+    }
+
+    for (const auto& m : moves) {
+        bool move_is_legal = evasions || pos.move_is_legal(m);
 
         if (move_is_legal) {
             if (depth == 1)
                 ++legal_moves;
-            else {
+            else
+            {
                 Undo undo;
 
                 pos.make_move(m, undo);

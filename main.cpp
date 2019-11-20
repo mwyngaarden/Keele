@@ -59,12 +59,14 @@ int main(int argc, char *argv[])
     
     int64_t illegal_moves = 0;
     int64_t total_microseconds = 0;
+    int64_t total_cycles = 0;
 
-    int64_t nodes = perft(depth, illegal_moves, total_microseconds, startpos);
+    int64_t nodes = perft(depth, illegal_moves, total_microseconds, total_cycles, startpos);
 
     cout << "nodes: " << nodes << endl;
     cout << "milliseconds: " << double(total_microseconds) / 1000.0 << endl;
     cout << "knps: " << 1000.0 * double(nodes) / double(total_microseconds) << endl;
+    cout << "cpn: " << double(total_cycles) / double(nodes) << endl;
     cout << "illegal moves: " << illegal_moves << " (" << 100.0 * illegal_moves / nodes << " %)" << endl;
 
 	return EXIT_SUCCESS;
