@@ -141,6 +141,14 @@ public:
     int checkers()      const { return checkers_count_; }
     int checkers(int i) const { return checkers_sq_[i]; }
 
+    u8 pawn_file(int side, int file) const
+    {
+        assert(side_is_ok(side));
+        assert(file_is_ok(file));
+
+        return pawn_file_[side][1 + file];
+    }
+
 private:
     void add_piece(int sq, u8 piece256, bool update = false);
     void rem_piece(int sq, bool update = false);
@@ -159,6 +167,7 @@ private:
     }
     
     u8 square_[16 * 12];
+    u8 pawn_file_[2][10];
 
     int side_ = -1;
     int flags_ = 0;

@@ -29,6 +29,10 @@ Position::Position(const string& fen)
     for (int i = 0; i < 64; i++)
         square(to_sq88(i)) = PieceNone256;
 
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 10; j++)
+            pawn_file_[i][j] = 0;
+
     // fen
 
     Tokenizer fields(fen, ' ');
@@ -377,6 +381,15 @@ void Position::add_piece(int sq, u8 piece256, bool update)
 
     piece_list_[p12].add(sq);
 
+    if (is_pawn(piece256)) {
+        const int file = sq88_file(sq);
+        const int rank = sq88_rank(sq);
+
+        assert((pawn_file_[p12 & 1][1 + file] & (1 << rank)) == 0);
+
+        pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
+    }
+
     if (update) {
         key_ ^= hash_piece(p12, sq);
     }
@@ -398,6 +411,15 @@ void Position::rem_piece(int sq, bool update)
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].remove(sq);
+    
+    if (is_pawn(piece256)) {
+        const int file = sq88_file(sq);
+        const int rank = sq88_rank(sq);
+
+        assert((pawn_file_[p12 & 1][1 + file] & (1 << rank)) != 0);
+
+        pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
+    }
 
     if (update) {
         key_ ^= hash_piece(p12, sq);
@@ -422,6 +444,19 @@ void Position::mov_piece(int orig, int dest, bool update)
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].replace(orig, dest);
+    
+    if (is_pawn(piece256)) {
+        const int ofile = sq88_file(orig);
+        const int orank = sq88_rank(orig);
+        const int dfile = sq88_file(dest);
+        const int drank = sq88_rank(dest);
+
+        assert((pawn_file_[p12 & 1][1 + ofile] & (1 << orank)) != 0);
+        assert((pawn_file_[p12 & 1][1 + dfile] & (1 << drank)) == 0);
+
+        pawn_file_[p12 & 1][1 + ofile] ^= 1 << orank;
+        pawn_file_[p12 & 1][1 + dfile] ^= 1 << drank;
+    }
 
     if (update) {
         key_ ^= hash_piece(p12, orig);

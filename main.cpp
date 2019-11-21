@@ -7,6 +7,7 @@
 #include "perft.h"
 #include "piece.h"
 #include "pos.h"
+#include "search.h"
 #include "square.h"
 using namespace std;
 
