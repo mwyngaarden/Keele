@@ -41,13 +41,6 @@ namespace Util {
             return npos;
         }
 
-        void remove_at(std::size_t index)
-        {
-            assert(index < size_);
-
-            data_[index] = data_[--size_];
-        }
-
         void remove(T value)
         {
             assert(find(value) != npos);

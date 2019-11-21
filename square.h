@@ -85,4 +85,9 @@ constexpr int to_sq88(int file, int rank)
     return (rank << 4) | file;
 }
 
+constexpr int ep_dual(int sq)
+{
+    return sq ^ 16;
+}
+
 #endif

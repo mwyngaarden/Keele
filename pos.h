@@ -44,7 +44,7 @@ public:
 
     void mark_pins(BitSet& pins) const;
 
-    bool ep_is_valid() const;
+    bool ep_is_valid(int sq) const;
 
     bool move_is_legal(const Move& move) const;
     bool move_is_legal_ep(const Move& move) const;

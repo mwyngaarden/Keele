@@ -3,6 +3,7 @@
 #include "move.h"
 #include "piece.h"
 #include "pos.h"
+#include "square.h"
 #include "types.h"
 using namespace std;
 
@@ -103,7 +104,6 @@ size_t gen_legal_moves(MoveList& moves, const Position& pos)
 
         for (int i = moves.size() - 1; i >= 0; i--)
             if (!pos.move_is_legal(moves[i]))
-                //moves.remove_at(i);
                 moves.remove(moves[i]);
     }
 
@@ -154,11 +154,9 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
         }
     }
     else {
-        // TODO FIXME
-        // FIXME TODO
-        if (int ep_sq = pos.ep_sq(); rank == Rank5 && ep_sq != SquareNone) {
-            if (abs(sq88_file(orig) - sq88_file(ep_sq)) == 1)
-                moves.add(Move(orig, ep_sq, pos[ep_sq - inc]) | Move::EPFlag);
+        if (int ep_sq = pos.ep_sq(); ep_sq != SquareNone) {
+            if (orig == ep_dual(ep_sq) - 1 || orig == ep_dual(ep_sq) + 1)
+                moves.add(Move(orig, ep_sq, pos[ep_dual(ep_sq)]) | Move::EPFlag);
         }
 
         if (int dest = orig + inc - 1; pos[dest] & oflag)
@@ -360,7 +358,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
 
     // pawn captures checking piece
 
-    if (checker1 == pos.ep_sq() - inc) {
+    if (checker1 == ep_dual(pos.ep_sq())) {
         pawn = checker1 - 1;
 
         if (pos[pawn] == mpawn && !pins.test(pawn))

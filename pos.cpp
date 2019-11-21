@@ -17,7 +17,7 @@
 #include "types.h"
 using namespace std;
 
-static constexpr bool UpdateInfo = true;
+static constexpr bool UpdateInfo = false;
 
 Position::Position(const string& fen)
 {
@@ -87,9 +87,11 @@ Position::Position(const string& fen)
     // en passant
     
     if (ep_sq != "-") {
-        ep_sq_ = san_to_sq88(ep_sq);
+        int sq = san_to_sq88(ep_sq);
+        
+        assert(sq88_is_ok(sq));
 
-        assert(sq88_is_ok(ep_sq_));
+        ep_sq_ = ep_is_valid(sq) ? sq : SquareNone;
     }
 
     // half moves counter
@@ -110,8 +112,8 @@ Position::Position(const string& fen)
 
     if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
-        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-        key_ ^= hash_side(side_);
+        key_ ^= ep_sq_ != SquareNone ? hash_ep(ep_sq_) : 0;
+        key_ ^= side_ == White ? hash_side() : 0;
     }
 
     assert(is_ok() == 0);
@@ -186,8 +188,8 @@ void Position::make_move(const Move& move, Undo& undo)
 
     if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
-        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-        key_ ^= hash_side(side_);
+        key_ ^= ep_sq_ != SquareNone ? hash_ep(ep_sq_) : 0;
+        key_ ^= hash_side();
     }
 
     const int orig = move.orig();
@@ -197,8 +199,6 @@ void Position::make_move(const Move& move, Undo& undo)
         
     const int inc = pawn_inc(side_);
 
-    const bool irreversible = is_pawn(piece256) || move.is_capture();
-        
     if (move.is_castle()) {
         int rorig = dest > orig ? orig + 3 : orig - 4;
         int rdest = dest > orig ? orig + 1 : orig - 1;
@@ -225,9 +225,8 @@ void Position::make_move(const Move& move, Undo& undo)
     }
        
     flags_ &= castle_flag(orig) & castle_flag(dest);
-    ep_sq_ = move.is_double() ? dest - inc : SquareNone;
-
-    half_moves_  = irreversible ? 0 : half_moves_ + 1;
+    ep_sq_ = move.is_double() && ep_is_valid(ep_dual(dest)) ? ep_dual(dest) : SquareNone;
+    half_moves_  = is_pawn(piece256) || move.is_capture() ? 0 : half_moves_ + 1;
     full_moves_ += side_;
     
     side_ = flip_side(side_);
@@ -242,8 +241,7 @@ void Position::make_move(const Move& move, Undo& undo)
 
     if (UpdateInfo) {
         key_ ^= hash_castle(flags_);
-        key_ ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-        key_ ^= hash_side(side_);
+        key_ ^= ep_sq_ != SquareNone ? hash_ep(ep_sq_) : 0;
     }
 }
 
@@ -269,10 +267,8 @@ void Position::unmake_move(const Move& move, const Undo& undo)
         mov_piece(rdest, rorig);
     }
     else if (move.is_ep()) {
-        const int inc = pawn_inc(side_);
-
         mov_piece(dest, orig);
-        add_piece(dest + inc, make_pawn(side_));
+        add_piece(ep_dual(dest), make_pawn(side_));
     }
     else {
         if (move.is_promo()) {
@@ -291,6 +287,8 @@ void Position::unmake_move(const Move& move, const Undo& undo)
 
 int Position::is_ok(bool check_test) const
 {
+    if (!side_is_ok(side_)) return __LINE__;
+
     if (piece_list_[WhiteKing12].size() != 1) return __LINE__;
     if (piece_list_[BlackKing12].size() != 1) return __LINE__;
     
@@ -360,9 +358,7 @@ int Position::is_ok(bool check_test) const
 
         u8 opawn = make_pawn(flip_side(side_));
 
-        int inc = pawn_inc(flip_side(side_));
-
-        if (square(ep_sq_ + inc) != opawn)
+        if (square(ep_dual(ep_sq_)) != opawn)
             return __LINE__;
     }
 
@@ -579,22 +575,24 @@ uint64_t Position::calc_key() const
     }
 
     key ^= hash_castle(flags_);
-    key ^= ep_is_valid() ? hash_ep(ep_sq_) : 0;
-    key ^= hash_side(side_);
+    key ^= ep_sq_ != SquareNone ? hash_ep(ep_sq_) : 0;
+    key ^= side_ == White ? hash_side() : 0;
 
     return key;
 }
 
-bool Position::ep_is_valid() const
+bool Position::ep_is_valid(int sq) const
 {
-    if (ep_sq_ == SquareNone)
-        return false;
+    assert(sq88_is_ok(sq));
+    assert(sq88_rank(sq) == Rank3 || sq88_rank(sq) == Rank6);
 
-    int sq = ep_sq_ - pawn_inc(side_);
+    sq = ep_dual(sq);
+    
+    assert(is_pawn(square(sq)));
 
-    u8 mpawn = make_pawn(side_);
+    const u8 opawn = flip_pawn(square(sq));
 
-    return square(sq - 1) == mpawn || square(sq + 1) == mpawn;
+    return square(sq - 1) == opawn || square(sq + 1) == opawn;
 }
 
 void Position::mark_pins(BitSet& pins) const

@@ -249,8 +249,9 @@ u64 hash_piece(int piece, int sq)
     assert(sq64_is_ok(sq64));
     
     // modified to match polyglot
-
-    int index = (piece ^ 1) * 64 + sq64;
+    // int index = (piece ^ 1) * 64 + sq64;
+    
+    int index = 64 * piece + sq64;
 
     return random64[HashPieceIndex + index];
 }
@@ -265,22 +266,17 @@ u64 hash_castle(int flags)
 u64 hash_ep(int sq)
 {
     assert(sq88_is_ok(sq));
+    assert(sq88_rank(sq) == Rank3 || sq88_rank(sq) == Rank6);
 
     int file = sq88_file(sq);
     
     assert(file_is_ok(file));
-    
-    [[maybe_unused]] int rank = sq88_rank(sq);
-
-    assert(rank == Rank3 || rank == Rank6);
 
     return random64[HashEpIndex + file];
 }
 
-u64 hash_side(int side)
+u64 hash_side()
 {
-    assert(side_is_ok(side));
-
-    return side == White ? random64[HashSideIndex] : 0;
+    return random64[HashSideIndex];
 }
 
