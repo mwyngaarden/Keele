@@ -26,6 +26,8 @@ static void gen_king_moves      (MoveList& moves, const Position& pos, const boo
 static void gen_piece_moves     (MoveList& moves, const Position& pos, const int dest, const BitSet& pins);
 static void gen_pawn_moves      (MoveList& moves, const Position& pos, const int dest, const BitSet& pins);
 
+static void gen_pinned_moves    (MoveList& moves, const Position& pos, BitSet& pins);
+
 void gen_init()
 {
     delta_type_lut[DeltaOffset + 16 - 1] |= WhitePawnFlag256;
@@ -71,24 +73,38 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 {
     assert(pos.checkers() == 0);
 
-    const int mside = pos.side();
+    const int side = pos.side();
     
     gen_king_moves(moves, pos, true);
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Pawn]))
+    BitSet pins;
+
+    gen_pinned_moves(moves, pos, pins);
+
+    for (auto orig : pos.piece_list(WP12 + side)) {
+        if (pins.test(orig)) continue;
         gen_pawn_moves(moves, pos, orig);
+    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Knight]))
+    for (auto orig : pos.piece_list(WN12 + side)) {
+        if (pins.test(orig)) continue;
         gen_knight_moves(moves, pos, orig);
+    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Bishop]))
+    for (auto orig : pos.piece_list(WB12 + side)) {
+        if (pins.test(orig)) continue;
         gen_bishop_moves(moves, pos, orig);
+    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Rook]))
+    for (auto orig : pos.piece_list(WR12 + side)) {
+        if (pins.test(orig)) continue;
         gen_rook_moves(moves, pos, orig);
+    }
 
-    for (auto orig : pos.piece_list(PieceList12[mside][Queen]))
+    for (auto orig : pos.piece_list(WQ12 + side)) {
+        if (pins.test(orig)) continue;
         gen_queen_moves(moves, pos, orig);
+    }
 
     return moves.size();
 }
@@ -399,7 +415,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
 
     // piece captures checking piece
 
-    for (int p12 = WhiteKnight12 + mside; p12 <= BlackQueen12; p12 += 2) {
+    for (int p12 = WN12 + mside; p12 <= BQ12; p12 += 2) {
         for (auto orig : pos.piece_list(p12)) {
             if (pins.test(orig))
                 continue;
@@ -432,7 +448,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
 {
     const int mside = pos.side();
 
-    for (int orig : pos.piece_list(WhiteKnight12 + mside)) {
+    for (int orig : pos.piece_list(WN12 + mside)) {
         assert(sq88_is_ok(orig));
 
         if (pins.test(orig))
@@ -442,7 +458,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
             moves.add(Move(orig, dest, pos[dest]));
     }
 
-    for (int orig : pos.piece_list(WhiteBishop12 + mside)) {
+    for (int orig : pos.piece_list(WB12 + mside)) {
         assert(sq88_is_ok(orig));
 
         if (pins.test(orig))
@@ -457,7 +473,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
         moves.add(Move(orig, dest, pos[dest]));
     }
 
-    for (int orig : pos.piece_list(WhiteRook12 + mside)) {
+    for (int orig : pos.piece_list(WR12 + mside)) {
         assert(sq88_is_ok(orig));
 
         if (pins.test(orig))
@@ -472,7 +488,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
         moves.add(Move(orig, dest, pos[dest]));
     }
 
-    for (int orig : pos.piece_list(WhiteQueen12 + mside)) {
+    for (int orig : pos.piece_list(WQ12 + mside)) {
         assert(sq88_is_ok(orig));
 
         if (pins.test(orig))
@@ -523,6 +539,96 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int dest, const 
         }
         else
             moves.add(m);
+    }
+}
+
+void gen_pinned_moves(MoveList& moves, const Position& pos, BitSet& pins)
+{
+    assert(pins.none());
+
+    const int king = pos.king_sq();
+
+    const int mside =           pos.side();
+    const int oside = flip_side(pos.side());
+
+    const u8 mflag = make_flag(mside);
+
+    u8 piece256;
+
+    for (const auto orig : pos.sliders(oside)) {
+        assert(is_slider(piece256));
+
+        if (!pseudo_attack(orig, king, pos[orig]))
+            continue;
+
+        const int inc = delta_inc(orig, king);
+
+        int pinned = orig + inc;
+
+        while (pos[pinned] == PieceNone256) pinned += inc;
+
+        if ((pos[pinned] & mflag) == 0)
+            continue;
+
+        int sq2 = king - inc;
+
+        while (pos[sq2] == PieceNone256) sq2 -= inc;
+
+        if (pinned != sq2)
+            continue;
+
+        piece256 = pos[pinned];
+
+        assert((piece256 & mflag) != 0);
+
+        if (is_pawn(piece256)) {
+            const int pinc = pawn_inc(mside);
+            
+            sq2 = pinned + pinc;
+            
+            // leave en passant captures for late legality checking since they
+            // are difficult to get right
+
+            if (sq2 - 1 == pos.ep_sq() || sq2 + 1 == pos.ep_sq())
+                continue;
+
+            const int rank = sq88_rank(pinned, mside);
+
+            // vertical pinned
+            
+            if (abs(inc) == 16) {
+                if (pos.empty(sq2)) {
+                    moves.add(Move(pinned, sq2));
+
+                    sq2 += pinc;
+
+                    if (rank == Rank2 && pos.empty(sq2))
+                        moves.add(Move(pinned, sq2) | Move::DoubleFlag);
+                }
+            }
+            else if (sq2 - 1 == orig || sq2 + 1 == orig) {
+                Move m(pinned, orig, pos[orig]);
+                    
+                if (rank == Rank7) {
+                    moves.add(m | Move::PromoKnightFlag);
+                    moves.add(m | Move::PromoBishopFlag);
+                    moves.add(m | Move::PromoRookFlag);
+                    moves.add(m | Move::PromoQueenFlag);
+                }
+                else
+                    moves.add(m);
+            }
+        }
+        else if (pseudo_attack(pinned, orig, piece256)) {
+            assert(is_slider(piece256));
+
+            for (sq2 = king   - inc; pos.empty(sq2); sq2 -= inc) moves.add(Move(pinned, sq2));
+            for (sq2 = pinned - inc; pos.empty(sq2); sq2 -= inc) moves.add(Move(pinned, sq2));
+
+            moves.add(Move(pinned, orig, pos[orig]));
+        }
+        
+        pins.set(pinned);
     }
 }
 

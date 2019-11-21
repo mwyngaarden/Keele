@@ -293,8 +293,8 @@ int Position::is_ok(bool check_test) const
 {
     if (!side_is_ok(side_)) return __LINE__;
 
-    if (piece_list_[WhiteKing12].size() != 1) return __LINE__;
-    if (piece_list_[BlackKing12].size() != 1) return __LINE__;
+    if (piece_list_[WK12].size() != 1) return __LINE__;
+    if (piece_list_[BK12].size() != 1) return __LINE__;
     
     size_t type_min[6] = { 0,  0,  0,  0, 0, 1 };
     size_t type_max[6] = { 8, 10, 10, 10, 9, 1 };
@@ -375,13 +375,13 @@ void Position::add_piece(int sq, u8 piece256, bool update)
     assert(empty(sq));
     assert(piece256_is_ok(piece256));
 
-    const int p12 = to_piece12(piece256);
+    const int p12 = P256ToP12[piece256];
 
     assert(piece12_is_ok(p12));
 
     piece_list_[p12].add(sq);
 
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -389,6 +389,8 @@ void Position::add_piece(int sq, u8 piece256, bool update)
 
         pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
     }
+    else if (is_slider(piece256))
+        sliders_[p12 & 1].add(sq);
 
     if (update) {
         key_ ^= hash_piece(p12, sq);
@@ -406,13 +408,13 @@ void Position::rem_piece(int sq, bool update)
     
     assert(piece256_is_ok(piece256));
 
-    const int p12 = to_piece12(piece256);
+    const int p12 = P256ToP12[piece256];
     
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].remove(sq);
     
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -420,6 +422,8 @@ void Position::rem_piece(int sq, bool update)
 
         pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
     }
+    else if (is_slider(piece256))
+        sliders_[p12 & 1].remove(sq);
 
     if (update) {
         key_ ^= hash_piece(p12, sq);
@@ -439,13 +443,13 @@ void Position::mov_piece(int orig, int dest, bool update)
 
     assert(piece256_is_ok(piece256));
 
-    const int p12 = to_piece12(piece256);
+    const int p12 = P256ToP12[piece256];
 
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].replace(orig, dest);
     
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int ofile = sq88_file(orig);
         const int orank = sq88_rank(orig);
         const int dfile = sq88_file(dest);
@@ -457,6 +461,8 @@ void Position::mov_piece(int orig, int dest, bool update)
         pawn_file_[p12 & 1][1 + ofile] ^= 1 << orank;
         pawn_file_[p12 & 1][1 + dfile] ^= 1 << drank;
     }
+    else if (is_slider(piece256))
+        sliders_[p12 & 1].replace(orig, dest);
 
     if (update) {
         key_ ^= hash_piece(p12, orig);
@@ -485,12 +491,26 @@ bool Position::side_attacks(int side, int dest) const
         if (int orig = dest - inc + 1; square(orig) == pawn256) return true;
     }
 
-    for (const int orig : piece_list(WhiteKnight12 + side)) {
+    for (const int orig : piece_list(WN12 + side)) {
         if (pseudo_attack(orig, dest, KnightFlag256))
             return true;
     }
+    
+    for (const int orig : sliders_[side]) {
+        if (!pseudo_attack(orig, dest, square(orig)))
+            continue;
 
-    for (const int orig : piece_list(WhiteBishop12 + side)) {
+        int inc = delta_inc(dest, orig);
+        int sq = dest;
+
+        do { sq += inc; } while (square(sq) == PieceNone256);
+
+        if (sq == orig)
+            return true;
+    }
+
+    /*
+    for (const int orig : piece_list(WB12 + side)) {
         if (!pseudo_attack(orig, dest, BishopFlag256))
             continue;
 
@@ -503,7 +523,7 @@ bool Position::side_attacks(int side, int dest) const
             return true;
     }
 
-    for (const int orig : piece_list(WhiteRook12 + side)) {
+    for (const int orig : piece_list(WR12 + side)) {
         if (!pseudo_attack(orig, dest, RookFlag256))
             continue;
 
@@ -516,7 +536,7 @@ bool Position::side_attacks(int side, int dest) const
             return true;
     }
     
-    for (const int orig : piece_list(WhiteQueen12 + side)) {
+    for (const int orig : piece_list(WQ12 + side)) {
         if (!pseudo_attack(orig, dest, QueenFlags256))
             continue;
 
@@ -528,6 +548,7 @@ bool Position::side_attacks(int side, int dest) const
         if (sq == orig)
             return true;
     }
+    */
 
     return false;
 }
@@ -604,7 +625,9 @@ uint64_t Position::calc_key() const
 
         assert(piece256_is_ok(piece256));
 
-        int p12 = to_piece12(piece256);
+        int p12 = P256ToP12[piece256];
+
+        assert(piece12_is_ok(p12));
 
         key ^= hash_piece(p12, sq);
     }
@@ -647,7 +670,36 @@ void Position::mark_pins(BitSet& pins) const
     int sq2;
     int inc;
 
-    for (int p12 = WhiteBishop12 + oside; p12 <= BlackQueen12; p12 += 2) {
+    for (const int orig : sliders_[oside]) {
+        assert(sq88_is_ok(orig));
+
+        piece256 = square(orig);
+
+        if (!pseudo_attack(king, orig, piece256))
+            continue;
+
+        inc = delta_inc(king, orig);
+        sq1 = king + inc;
+
+        while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
+        
+        assert(sq88_is_ok(sq1));
+
+        if ((piece256 & mflag) == 0)
+            continue;
+
+        sq2 = orig - inc;
+
+        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+
+        assert(sq88_is_ok(sq2));
+
+        if (sq1 == sq2)
+            pins.set(sq1);
+    }
+
+    /*
+    for (int p12 = WB12 + oside; p12 <= BQ12; p12 += 2) {
         for (const int orig : piece_list_[p12]) {
             assert(sq88_is_ok(orig));
 
@@ -676,9 +728,10 @@ void Position::mark_pins(BitSet& pins) const
                 pins.set(sq1);
         }
     }
+    */
 
     /*
-    for (const auto orig : piece_list_[WhiteBishop12 + oside]) {
+    for (const auto orig : piece_list_[WB12 + oside]) {
         if (!pseudo_attack(orig, king, BishopFlag256)) continue;
         inc = delta_inc(king, orig);
         sq1 = king + inc;
@@ -689,7 +742,7 @@ void Position::mark_pins(BitSet& pins) const
         if (sq1 == sq2) pins.set(sq1);
     }
 
-    for (const auto orig : piece_list_[WhiteRook12 + oside]) {
+    for (const auto orig : piece_list_[WR12 + oside]) {
         if (!pseudo_attack(orig, king, RookFlag256)) continue;
         inc = delta_inc(king, orig);
         sq1 = king + inc;
@@ -700,7 +753,7 @@ void Position::mark_pins(BitSet& pins) const
         if (sq1 == sq2) pins.set(sq1);
     }
 
-    for (const auto orig : piece_list_[WhiteQueen12 + oside]) {
+    for (const auto orig : piece_list_[WQ12 + oside]) {
         if (!pseudo_attack(orig, king, QueenFlags256)) continue;
         inc = delta_inc(king, orig);
         sq1 = king + inc;
@@ -729,7 +782,7 @@ void Position::set_checkers_slow()
     if (const int orig = king - inc + 1; square(orig) == opawn)
         checkers_sq_[checkers_count_++] = orig;
 
-    for (int p12 = WhiteKnight12 + oside; p12 <= BlackQueen12; p12 += 2) {
+    for (int p12 = WN12 + oside; p12 <= BQ12; p12 += 2) {
         for (const int orig : piece_list_[p12]) {
             if (piece_attacks(orig, king)) {
                 assert(checkers_count_ < 2);
@@ -844,12 +897,15 @@ bool Position::move_is_legal(const Move& move) const
 
     assert(move.orig() != king);
     assert(checkers_count_ == 0);
+    
+    const int orig = move.orig();
+    const int dest = move.dest();
+
+    if (!is_pawn(square(orig)) || ep_sq_ == SquareNone || (orig != ep_dual(ep_sq_) - 1 && orig != ep_dual(ep_sq_) + 1))
+        return true;
 
     if (move.is_ep()) 
         return move_is_legal_ep(move);
-
-    const int orig = move.orig();
-    const int dest = move.dest();
 
     if (!pseudo_attack(orig, king, QueenFlags256))
         return true;

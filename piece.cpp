@@ -5,61 +5,46 @@
 #include "types.h"
 using namespace std;
 
-static int piece256_to_piece12[256];
-
-constexpr char piece12_to_char[12] = { 'P', 'p', 'N', 'n', 'B', 'b', 'R', 'r', 'Q', 'q', 'K', 'k' };
-
-constexpr u8 piece12_to_piece256[12] = {
-    WhitePawn256,
-    BlackPawn256,
-    WhiteKnight256,
-    BlackKnight256,
-    WhiteBishop256,
-    BlackBishop256,
-    WhiteRook256,
-    BlackRook256,
-    WhiteQueen256,
-    BlackQueen256,
-    WhiteKing256,
-    BlackKing256
-};
+u8 P12ToP256[12];
+int P256ToP12[256];
 
 void piece_init()
 {
     for (int i = 0; i < 256; i++)
-        piece256_to_piece12[i] = PieceNone12;
+        P256ToP12[i] = PieceNone12;
 
-    piece256_to_piece12[WhitePawn256]   = WhitePawn12;
-    piece256_to_piece12[BlackPawn256]   = BlackPawn12;
-    piece256_to_piece12[WhiteKnight256] = WhiteKnight12;
-    piece256_to_piece12[BlackKnight256] = BlackKnight12;
-    piece256_to_piece12[WhiteBishop256] = WhiteBishop12;
-    piece256_to_piece12[BlackBishop256] = BlackBishop12;
-    piece256_to_piece12[WhiteRook256]   = WhiteRook12;
-    piece256_to_piece12[BlackRook256]   = BlackRook12;
-    piece256_to_piece12[WhiteQueen256]  = WhiteQueen12;
-    piece256_to_piece12[BlackQueen256]  = BlackQueen12;
-    piece256_to_piece12[WhiteKing256]   = WhiteKing12;
-    piece256_to_piece12[BlackKing256]   = BlackKing12;
+    P12ToP256[WP12] = WP256;
+    P12ToP256[WN12] = WN256;
+    P12ToP256[WB12] = WB256;
+    P12ToP256[WR12] = WR256;
+    P12ToP256[WQ12] = WQ256;
+    P12ToP256[WK12] = WK256;
+
+    P12ToP256[BP12] = BP256;
+    P12ToP256[BN12] = BN256;
+    P12ToP256[BB12] = BB256;
+    P12ToP256[BR12] = BR256;
+    P12ToP256[BQ12] = BQ256;
+    P12ToP256[BK12] = BK256;
+
+    P256ToP12[WP256] = WP12;
+    P256ToP12[WN256] = WN12;
+    P256ToP12[WB256] = WB12;
+    P256ToP12[WR256] = WR12;
+    P256ToP12[WQ256] = WQ12;
+    P256ToP12[WK256] = WK12;
+
+    P256ToP12[BP256] = BP12;
+    P256ToP12[BN256] = BN12;
+    P256ToP12[BB256] = BB12;
+    P256ToP12[BR256] = BR12;
+    P256ToP12[BQ256] = BQ12;
+    P256ToP12[BK256] = BK12;
 }
 
 bool piece256_is_ok(u8 piece)
 {
-    return piece256_to_piece12[piece] != PieceNone12;
-}
-
-int to_piece12(u8 piece)
-{
-    assert(piece256_is_ok(piece));
-
-    return piece256_to_piece12[piece];
-}
-
-int to_piece(u8 piece)
-{
-    assert(piece256_is_ok(piece));
-
-    return to_piece12(piece) >> 1;
+    return P256ToP12[piece] != PieceNone12;
 }
 
 int to_piece12(int side, int piece)
@@ -75,24 +60,24 @@ u8 to_piece256(int side, int piece)
     assert(side_is_ok(side));
     assert(piece_is_ok(piece));
 
-    return piece12_to_piece256[to_piece12(side, piece)];
+    return P12ToP256[to_piece12(side, piece)];
 }
 
 u8 char_to_piece256(char c)
 {
     switch (c) {
-    case 'P': return WhitePawn256;
-    case 'N': return WhiteKnight256;
-    case 'B': return WhiteBishop256;
-    case 'R': return WhiteRook256;
-    case 'Q': return WhiteQueen256;
-    case 'K': return WhiteKing256;
-    case 'p': return BlackPawn256;
-    case 'n': return BlackKnight256;
-    case 'b': return BlackBishop256;
-    case 'r': return BlackRook256;
-    case 'q': return BlackQueen256;
-    case 'k': return BlackKing256;
+    case 'P': return WP256;
+    case 'N': return WN256;
+    case 'B': return WB256;
+    case 'R': return WR256;
+    case 'Q': return WQ256;
+    case 'K': return WK256;
+    case 'p': return BP256;
+    case 'n': return BN256;
+    case 'b': return BB256;
+    case 'r': return BR256;
+    case 'q': return BQ256;
+    case 'k': return BK256;
     default:
         assert(false);
         return PieceInvalid256;
@@ -101,7 +86,9 @@ u8 char_to_piece256(char c)
 
 char piece256_to_char(u8 piece)
 {
-    assert(piece256_is_ok(piece));
+    assert(P256ToP12[piece] != PieceNone12);
 
-    return piece12_to_char[piece256_to_piece12[piece]];
+    constexpr char ptoc[12] = { 'P', 'p', 'N', 'n', 'B', 'b', 'R', 'r', 'Q', 'q', 'K', 'k' };
+
+    return ptoc[P256ToP12[piece]];
 }

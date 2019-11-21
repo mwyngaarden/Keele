@@ -103,7 +103,7 @@ public:
         assert(sq88_is_ok(sq));
         assert(piece_is_ok(piece));
 
-        return to_piece(square(sq)) == piece;
+        return (P256ToP12[square(sq)] >> 1) == piece;
     }
 
     const PieceList& piece_list(int p12) const
@@ -117,7 +117,7 @@ public:
     {
         assert(side_is_ok(side));
 
-        return piece_list_[WhiteKing12 + side][0];
+        return piece_list_[WK12 + side][0];
     }
 
     int king_sq() const { return king_sq(side_); }
@@ -149,6 +149,13 @@ public:
         return pawn_file_[side][1 + file];
     }
 
+    const PieceList& sliders(int side) const
+    {
+        assert(side_is_ok(side));
+
+        return sliders_[side];
+    }
+
 private:
     void add_piece(int sq, u8 piece256, bool update = false);
     void rem_piece(int sq, bool update = false);
@@ -168,6 +175,7 @@ private:
     
     u8 square_[16 * 12];
     u8 pawn_file_[2][10];
+    PieceList sliders_[2];
 
     int side_ = -1;
     int flags_ = 0;

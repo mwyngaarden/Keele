@@ -72,6 +72,8 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 
     vector<FenInfo> fen_info = read_epd("perft.epd");
 
+    int64_t invalid = 0;
+
     for (size_t i = 0; i < fen_info.size(); i++) {
         const FenInfo& fi = fen_info[i];
 
@@ -98,11 +100,21 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         
         int64_t diff_nodes = have_nodes - want_nodes;
 
+        invalid += diff_nodes != 0;
+
         nodes += have_nodes;
 
-        cout << i << ',' << depth << ',' << want_nodes << ',' << have_nodes << ',' << diff_nodes << ',';
+        //if (((i + 1) % 100) == 0)
+        {
+            cout << i                   << ','
+                 << depth               << ','
+                 << want_nodes          << ',' 
+                 << have_nodes          << ',' 
+                 << diff_nodes          << ',';
 
-        cout << (diff_nodes == 0 ? "PASS" : "FAIL") << '\n';
+            cout << (diff_nodes == 0 ? "PASS" : "FAIL") << ','
+                 << invalid << '\n';
+        }
 
         /*
         cout << "\twant nodes: " << want_nodes               << endl;
@@ -138,6 +150,8 @@ int64_t perft(Position& pos,
         Undo undo;
 
         pos.make_move(m, undo);
+
+        assert(!pos.side_attacks(pos.side(), pos.king_sq(flip_side(pos.side()))));
 
         legal_moves += perft(pos, depth - 1, height + 1, illegal_moves);
 
