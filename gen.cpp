@@ -92,9 +92,21 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
     return moves.size();
 }
 
-//size_t gen_legal_moves(MoveList& moves, const Position& pos)
-size_t gen_legal_moves(MoveList& moves, const Position&)
+size_t gen_legal_moves(MoveList& moves, const Position& pos)
 {
+    assert(moves.empty());
+
+    if (pos.checkers() > 0)
+        gen_evasion_moves(moves, pos);
+    else {
+        gen_pseudo_moves(moves, pos);
+
+        for (int i = moves.size() - 1; i >= 0; i--)
+            if (!pos.move_is_legal(moves[i]))
+                //moves.remove_at(i);
+                moves.remove(moves[i]);
+    }
+
     return moves.size();
 }
 

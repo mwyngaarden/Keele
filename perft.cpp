@@ -46,7 +46,8 @@ struct FenInfo {
     }
 };
 
-static int64_t perft(Position& pos, int depth, int height, int64_t& illegal_moves, int64_t& mates);
+static int64_t perft(Position& pos, int depth, int height, int64_t& illegal_moves);
+
 static vector<FenInfo> read_epd(const string& filename);
 
 string move_to_string(const Move& move)
@@ -76,14 +77,13 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 
         Position pos(fi.fen);
 
-        int64_t mates = 0;
         int64_t want_nodes = fi.nodes[depth - 1];
 
         auto t0 = chrono::high_resolution_clock::now();
         
         int64_t rdtsc0 = __rdtsc();
 
-        int64_t have_nodes = perft(pos, depth, 0, illegal_moves, mates);
+        int64_t have_nodes = perft(pos, depth, 0, illegal_moves);
 
         int64_t rdtsc1 = __rdtsc();
 
@@ -100,9 +100,9 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 
         nodes += have_nodes;
 
-        //cout << i << ',' << depth << ',' << want_nodes << ',' << have_nodes << ',' << diff_nodes << ',';
+        cout << i << ',' << depth << ',' << want_nodes << ',' << have_nodes << ',' << diff_nodes << ',';
 
-        //cout << (diff_nodes == 0 ? "PASS" : "FAIL") << '\n';
+        cout << (diff_nodes == 0 ? "PASS" : "FAIL") << '\n';
 
         /*
         cout << "\twant nodes: " << want_nodes               << endl;
@@ -110,10 +110,6 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         cout << "\tdiff nodes: " << have_nodes - want_nodes;
 
         if (want_nodes != have_nodes) cout << " !!!!!!!!!!!!!!!!";
-
-        cout << endl;
-        
-        cout << "\tmates: "             << mates            << endl;
 
         cout << endl;
         */
@@ -127,49 +123,26 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 int64_t perft(Position& pos,
               int depth,
               int height,
-              int64_t& illegal_moves,
-              int64_t& mates)
+              int64_t& illegal_moves)
 {
     if (depth == 0) return 1;
 
     MoveList moves;
 
     int64_t legal_moves = 0;
-    int64_t total_moves;
-    bool evasions;
+    int64_t total_moves = gen_legal_moves(moves, pos);
 
-    if (pos.checkers() > 0) {
-        total_moves = gen_evasion_moves(moves, pos);
-        evasions = true;
-    }
-    else {
-        total_moves = gen_pseudo_moves(moves, pos);
-        evasions = false;
-    }
+    if (depth == 1) return total_moves;
 
     for (const auto& m : moves) {
-        bool move_is_legal = evasions || pos.move_is_legal(m);
+        Undo undo;
 
-        if (move_is_legal) {
-            if (depth == 1)
-                ++legal_moves;
-            else
-            {
-                Undo undo;
+        pos.make_move(m, undo);
 
-                pos.make_move(m, undo);
+        legal_moves += perft(pos, depth - 1, height + 1, illegal_moves);
 
-                legal_moves += perft(pos, depth - 1, height + 1, illegal_moves, mates);
-
-                pos.unmake_move(m, undo); 
-            }
-        }
-        else
-            ++illegal_moves;
+        pos.unmake_move(m, undo); 
     }
-
-    if (depth == 1 && legal_moves == 0)
-        mates++;
 
     return legal_moves;
 }

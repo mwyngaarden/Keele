@@ -6,6 +6,7 @@
 #include <sstream>
 #include <utility>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include "gen.h"
 #include "hash.h"
@@ -16,7 +17,7 @@
 #include "types.h"
 using namespace std;
 
-static constexpr bool UpdateInfo = false;
+static constexpr bool UpdateInfo = true;
 
 Position::Position(const string& fen)
 {
@@ -27,10 +28,6 @@ Position::Position(const string& fen)
 
     for (int i = 0; i < 64; i++)
         square(to_sq88(i)) = PieceNone256;
-
-    for (int i = White; i <= Black; i++)
-        for (int j = 0; j < 10; j++)
-            pawn_file_[i][j] = 0;
 
     // fen
 
@@ -384,8 +381,9 @@ void Position::add_piece(int sq, u8 piece256, bool update)
 
     piece_list_[p12].add(sq);
 
-    if (update)
+    if (update) {
         key_ ^= hash_piece(p12, sq);
+    }
 
     square(sq) = piece256;
 }
@@ -405,8 +403,9 @@ void Position::rem_piece(int sq, bool update)
     
     piece_list_[p12].remove(sq);
 
-    if (update)
+    if (update) {
         key_ ^= hash_piece(p12, sq);
+    }
 
     square(sq) = PieceNone256;
 }
