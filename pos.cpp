@@ -238,7 +238,6 @@ void Position::make_move(const Move& move, Undo& undo)
     // update checkers
 
     checkers_count_ = 0;
-    
     set_checkers_fast(move);
 
     // update key, pst scores, etc.
@@ -383,7 +382,7 @@ void Position::add_piece(int sq, u8 piece256, bool update)
 
     piece_list_[p12].add(sq);
 
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -413,7 +412,7 @@ void Position::rem_piece(int sq, bool update)
     
     piece_list_[p12].remove(sq);
     
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -445,7 +444,7 @@ void Position::mov_piece(int orig, int dest, bool update)
     
     piece_list_[p12].replace(orig, dest);
     
-    if (is_pawn(piece256)) {
+    if (false && is_pawn(piece256)) {
         const int ofile = sq88_file(orig);
         const int orank = sq88_rank(orig);
         const int dfile = sq88_file(dest);
