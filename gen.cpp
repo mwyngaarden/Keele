@@ -289,6 +289,8 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
     for (auto inc : QueenIncs) {
         const int dest = king + inc;
 
+        if (!sq88_is_ok(dest)) continue;
+
         const u8 piece = pos[dest];
 
         if (piece == PieceNone256 || (piece & oflag))

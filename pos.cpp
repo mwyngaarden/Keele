@@ -471,9 +471,7 @@ bool Position::side_attacks(int side, int dest) const
     assert(side_is_ok(side));
     assert(sq88_is_ok(dest));
 
-    const int king = king_sq(side);
-
-    if (pseudo_attack(king, dest, KingFlag256))
+    if (pseudo_attack(king_sq(side), dest, KingFlag256))
         return true;
 
     const u8 pawn256 = make_pawn(side);

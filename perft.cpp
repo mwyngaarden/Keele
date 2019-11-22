@@ -143,15 +143,10 @@ int64_t perft(Position& pos,
     int64_t legal_moves = 0;
     int64_t total_moves = gen_legal_moves(moves, pos);
 
-    if (GenerateLegal && depth == 1) return total_moves;
+    if (depth == 1) return total_moves;
 
     for (const auto& m : moves) {
         Undo undo;
-
-        if (!GenerateLegal && !pos.move_is_legal(m)) {
-            illegal_moves++;
-            continue;
-        }
 
         pos.make_move(m, undo);
 
