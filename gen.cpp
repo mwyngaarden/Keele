@@ -115,9 +115,23 @@ size_t gen_legal_moves(MoveList& moves, const Position& pos)
 {
     assert(moves.empty());
 
-    return pos.checkers() > 0 
-         ? gen_evasion_moves(moves, pos)
-         : gen_pseudo_moves(moves, pos);
+    size_t count = pos.checkers() > 0 
+                 ? gen_evasion_moves(moves, pos)
+                 : gen_pseudo_moves(moves, pos);
+
+    if (Debug && (GenerateLegal || pos.checkers() > 0)) {
+        Position p(pos);
+
+        Undo undo;
+
+        for (const auto& m : moves) {
+            p.make_move(m, undo);
+            assert(!p.side_attacks(p.side(), p.king_sq(flip_side(p.side()))));
+            p.unmake_move(m, undo);
+        }
+    }
+
+    return count;
 }
 
 void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
@@ -294,7 +308,7 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
         const u8 piece = pos[dest];
 
         if (piece == PieceNone256 || (piece & oflag))
-            if (!pos.side_attacks(oside, dest))
+            if (!GenerateLegal || !pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
 
@@ -304,7 +318,8 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
             int king2 = king + 2;
 
             if (pos.empty(king1) && pos.empty(king2)) {
-                bool legal = !pos.side_attacks(oside, king1) && !pos.side_attacks(oside, king2);
+                bool legal = !pos.side_attacks(oside, king1)
+                          && (!GenerateLegal || !pos.side_attacks(oside, king2));
 
                 if (legal)
                     moves.add(Move(king, king2) | Move::CastleFlag);
@@ -316,7 +331,8 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
             int king3 = king - 3;
 
             if (pos.empty(king1) && pos.empty(king2) && pos.empty(king3)) {
-                bool legal = !pos.side_attacks(oside, king1) && !pos.side_attacks(oside, king2);
+                bool legal = !pos.side_attacks(oside, king1)
+                          && (!GenerateLegal || !pos.side_attacks(oside, king2));
 
                 if (legal)
                     moves.add(Move(king, king2) | Move::CastleFlag);
@@ -370,17 +386,17 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const int rank = sq88_rank(checker1, mside);
     const int inc = pawn_inc(mside);
 
-    int pawn;
-
     // pawn captures checking piece
 
     if (checker1 == ep_dual(pos.ep_sq())) {
-        pawn = checker1 - 1;
+        int pawn = checker1;
+
+        pawn -= 1;
 
         if (pos[pawn] == mpawn && !pins.test(pawn))
             moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
         
-        pawn = checker1 + 1;
+        pawn += 2;
         
         if (pos[pawn] == mpawn && !pins.test(pawn))
             moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
@@ -572,7 +588,7 @@ void gen_pinned_moves(MoveList& moves, const Position& pos, int attacker, int pi
             if (delta_inc(pinned, ep_sq) == -inc) {
                 Move m = Move(pinned, ep_sq, pos[ep_dual(ep_sq)]) | Move::EPFlag;
 
-                if (pos.move_is_legal_ep(m))
+                if (!GenerateLegal || pos.move_is_legal_ep(m))
                     moves.add(m);
             }
         }

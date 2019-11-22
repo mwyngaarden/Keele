@@ -70,6 +70,8 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 {
     int64_t nodes = 0;
 
+    double rcum_mnps = 0;
+
     vector<FenInfo> fen_info = read_epd("perft.epd");
 
     int64_t invalid = 0;
@@ -92,8 +94,13 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         auto t1 = chrono::high_resolution_clock::now();
 
         auto microseconds = chrono::duration_cast<chrono::microseconds>(t1 - t0);
+
+        double secs = microseconds.count() / 1000000.0;
         
         int64_t cycles = rdtsc1 - rdtsc0;
+
+        int cpn = int(double(cycles) / double(have_nodes) + 0.5);
+        int mnps = int(double(have_nodes) / secs / 1000000.0 + 0.5);
 
         total_microseconds += microseconds.count();
         total_cycles += cycles;
@@ -103,16 +110,27 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         invalid += diff_nodes != 0;
 
         nodes += have_nodes;
+        
+        double cum_mnps = int(double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6 + 0.5);
+
+        if (i == 0)
+            rcum_mnps = cum_mnps;
+        else
+            rcum_mnps = 0.9 * rcum_mnps + 0.1 * cum_mnps;
+
 
         if (((i + 1) % 100) == 0) {
-            cout << i                   << ','
-                 << depth               << ','
-                 << want_nodes          << ',' 
-                 << have_nodes          << ',' 
-                 << diff_nodes          << ',';
+            cout << i                       << ','
+                 << depth                   << ','
+                 << want_nodes              << ',' 
+                 << have_nodes              << ',' 
+                 << diff_nodes              << ','
+                 << invalid                 << ','
+                 << cpn                     << ','
+                 << mnps                    << ','
+                 << int(rcum_mnps)          << ',';
 
-            cout << (diff_nodes == 0 ? "PASS" : "FAIL") << ','
-                 << invalid << endl;
+            cout << (diff_nodes == 0 ? "PASS" : "FAIL") << endl;
         }
 
         /*
@@ -143,12 +161,19 @@ int64_t perft(Position& pos,
     int64_t legal_moves = 0;
     int64_t total_moves = gen_legal_moves(moves, pos);
 
-    if (depth == 1) return total_moves;
+    if (GenerateLegal && !Debug && depth == 1) return total_moves;
 
     for (const auto& m : moves) {
+        if (!GenerateLegal && !pos.move_is_legal(m)) {
+            illegal_moves++;
+            continue;
+        }
+
         Undo undo;
 
         pos.make_move(m, undo);
+
+        assert(!pos.side_attacks(pos.side(), pos.king_sq(flip_side(pos.side()))));
 
         legal_moves += perft(pos, depth - 1, height + 1, illegal_moves);
 
