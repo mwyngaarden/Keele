@@ -104,8 +104,7 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 
         nodes += have_nodes;
 
-        //if (((i + 1) % 100) == 0)
-        {
+        if (((i + 1) % 100) == 0) {
             cout << i                   << ','
                  << depth               << ','
                  << want_nodes          << ',' 
@@ -113,7 +112,7 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
                  << diff_nodes          << ',';
 
             cout << (diff_nodes == 0 ? "PASS" : "FAIL") << ','
-                 << invalid << '\n';
+                 << invalid << endl;
         }
 
         /*
@@ -144,14 +143,17 @@ int64_t perft(Position& pos,
     int64_t legal_moves = 0;
     int64_t total_moves = gen_legal_moves(moves, pos);
 
-    if (depth == 1) return total_moves;
+    if (GenerateLegal && depth == 1) return total_moves;
 
     for (const auto& m : moves) {
         Undo undo;
 
-        pos.make_move(m, undo);
+        if (!GenerateLegal && !pos.move_is_legal(m)) {
+            illegal_moves++;
+            continue;
+        }
 
-        assert(!pos.side_attacks(pos.side(), pos.king_sq(flip_side(pos.side()))));
+        pos.make_move(m, undo);
 
         legal_moves += perft(pos, depth - 1, height + 1, illegal_moves);
 

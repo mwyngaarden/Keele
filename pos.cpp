@@ -291,6 +291,8 @@ void Position::unmake_move(const Move& move, const Undo& undo)
 
 int Position::is_ok(bool check_test) const
 {
+    return 0;
+
     if (!side_is_ok(side_)) return __LINE__;
 
     if (piece_list_[WK12].size() != 1) return __LINE__;
@@ -389,12 +391,9 @@ void Position::add_piece(int sq, u8 piece256, bool update)
 
         pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
     }
-    else if (is_slider(piece256))
-        sliders_[p12 & 1].add(sq);
 
-    if (update) {
+    if (update)
         key_ ^= hash_piece(p12, sq);
-    }
 
     square(sq) = piece256;
 }
@@ -422,12 +421,9 @@ void Position::rem_piece(int sq, bool update)
 
         pawn_file_[p12 & 1][1 + file] ^= 1 << rank;
     }
-    else if (is_slider(piece256))
-        sliders_[p12 & 1].remove(sq);
 
-    if (update) {
+    if (update)
         key_ ^= hash_piece(p12, sq);
-    }
 
     square(sq) = PieceNone256;
 }
@@ -461,8 +457,6 @@ void Position::mov_piece(int orig, int dest, bool update)
         pawn_file_[p12 & 1][1 + ofile] ^= 1 << orank;
         pawn_file_[p12 & 1][1 + dfile] ^= 1 << drank;
     }
-    else if (is_slider(piece256))
-        sliders_[p12 & 1].replace(orig, dest);
 
     if (update) {
         key_ ^= hash_piece(p12, orig);
@@ -484,71 +478,38 @@ bool Position::side_attacks(int side, int dest) const
 
     const u8 pawn256 = make_pawn(side);
 
-    {
-        int inc = pawn_inc(side);
+    const int pinc = pawn_inc(side);
 
-        if (int orig = dest - inc - 1; square(orig) == pawn256) return true;
-        if (int orig = dest - inc + 1; square(orig) == pawn256) return true;
-    }
+    if (int orig = dest - pinc - 1; square(orig) == pawn256) return true;
+    if (int orig = dest - pinc + 1; square(orig) == pawn256) return true;
 
-    for (const int orig : piece_list(WN12 + side)) {
+    for (const int orig : piece_list(WN12 + side))
         if (pseudo_attack(orig, dest, KnightFlag256))
             return true;
-    }
-    
-    for (const int orig : sliders_[side]) {
-        if (!pseudo_attack(orig, dest, square(orig)))
-            continue;
 
-        int inc = delta_inc(dest, orig);
-        int sq = dest;
-
-        do { sq += inc; } while (square(sq) == PieceNone256);
-
-        if (sq == orig)
-            return true;
+    for (const auto orig : piece_list_[WB12 + side]) {
+        if (!pseudo_attack(orig, dest, BishopFlag256)) continue;
+        const int inc = delta_inc(dest, orig);
+        int sq = dest + inc;
+        while (square(sq) == PieceNone256) sq += inc;
+        if (sq == orig) return true;
     }
 
-    /*
-    for (const int orig : piece_list(WB12 + side)) {
-        if (!pseudo_attack(orig, dest, BishopFlag256))
-            continue;
-
-        int inc = delta_inc(dest, orig);
-        int sq = dest;
-
-        do { sq += inc; } while (square(sq) == PieceNone256);
-
-        if (sq == orig)
-            return true;
+    for (const auto orig : piece_list_[WR12 + side]) {
+        if (!pseudo_attack(orig, dest, RookFlag256)) continue;
+        const int inc = delta_inc(dest, orig);
+        int sq = dest + inc;
+        while (square(sq) == PieceNone256) sq += inc;
+        if (sq == orig) return true;
     }
 
-    for (const int orig : piece_list(WR12 + side)) {
-        if (!pseudo_attack(orig, dest, RookFlag256))
-            continue;
-
-        int inc = delta_inc(dest, orig);
-        int sq = dest;
-
-        do { sq += inc; } while (square(sq) == PieceNone256);
-
-        if (sq == orig)
-            return true;
+    for (const auto orig : piece_list_[WQ12 + side]) {
+        if (!pseudo_attack(orig, dest, QueenFlags256)) continue;
+        const int inc = delta_inc(dest, orig);
+        int sq = dest + inc;
+        while (square(sq) == PieceNone256) sq += inc;
+        if (sq == orig) return true;
     }
-    
-    for (const int orig : piece_list(WQ12 + side)) {
-        if (!pseudo_attack(orig, dest, QueenFlags256))
-            continue;
-
-        int inc = delta_inc(dest, orig);
-        int sq = dest;
-
-        do { sq += inc; } while (square(sq) == PieceNone256);
-
-        if (sq == orig)
-            return true;
-    }
-    */
 
     return false;
 }
@@ -659,7 +620,7 @@ void Position::mark_pins(BitSet& pins) const
 
     const int king = king_sq();
 
-    const int mside = side_;
+    const int mside =           side_;
     const int oside = flip_side(side_);
 
     const u8 mflag = make_flag(mside);
@@ -670,67 +631,6 @@ void Position::mark_pins(BitSet& pins) const
     int sq2;
     int inc;
 
-    for (const int orig : sliders_[oside]) {
-        assert(sq88_is_ok(orig));
-
-        piece256 = square(orig);
-
-        if (!pseudo_attack(king, orig, piece256))
-            continue;
-
-        inc = delta_inc(king, orig);
-        sq1 = king + inc;
-
-        while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
-        
-        assert(sq88_is_ok(sq1));
-
-        if ((piece256 & mflag) == 0)
-            continue;
-
-        sq2 = orig - inc;
-
-        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
-
-        assert(sq88_is_ok(sq2));
-
-        if (sq1 == sq2)
-            pins.set(sq1);
-    }
-
-    /*
-    for (int p12 = WB12 + oside; p12 <= BQ12; p12 += 2) {
-        for (const int orig : piece_list_[p12]) {
-            assert(sq88_is_ok(orig));
-
-            piece256 = square(orig);
-
-            if (!pseudo_attack(king, orig, piece256))
-                continue;
-
-            inc = delta_inc(king, orig);
-            sq1 = king + inc;
-
-            while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
-            
-            assert(sq88_is_ok(sq1));
-
-            if ((piece256 & mflag) == 0)
-                continue;
-
-            sq2 = orig - inc;
-
-            while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
-
-            assert(sq88_is_ok(sq2));
-
-            if (sq1 == sq2)
-                pins.set(sq1);
-        }
-    }
-    */
-
-    /*
     for (const auto orig : piece_list_[WB12 + oside]) {
         if (!pseudo_attack(orig, king, BishopFlag256)) continue;
         inc = delta_inc(king, orig);
@@ -738,7 +638,7 @@ void Position::mark_pins(BitSet& pins) const
         while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
         if ((piece256 & mflag) == 0) continue;
         sq2 = orig - inc;
-        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        while (square(sq2) == PieceNone256) sq2 -= inc;
         if (sq1 == sq2) pins.set(sq1);
     }
 
@@ -749,7 +649,7 @@ void Position::mark_pins(BitSet& pins) const
         while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
         if ((piece256 & mflag) == 0) continue;
         sq2 = orig - inc;
-        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        while (square(sq2) == PieceNone256) sq2 -= inc;
         if (sq1 == sq2) pins.set(sq1);
     }
 
@@ -760,10 +660,9 @@ void Position::mark_pins(BitSet& pins) const
         while ((piece256 = square(sq1)) == PieceNone256) sq1 += inc;
         if ((piece256 & mflag) == 0) continue;
         sq2 = orig - inc;
-        while ((piece256 = square(sq2)) == PieceNone256) sq2 -= inc;
+        while (square(sq2) == PieceNone256) sq2 -= inc;
         if (sq1 == sq2) pins.set(sq1);
     }
-    */
 }
 
 void Position::set_checkers_slow()
@@ -890,21 +789,17 @@ bool Position::empty(int orig, int dest) const
 
 bool Position::move_is_legal(const Move& move) const
 {
-    const int king = king_sq();
-
-    if (move.orig() == king)
+    if (checkers_count_ > 0)
         return true;
 
-    assert(move.orig() != king);
-    assert(checkers_count_ == 0);
-    
+    const int king = king_sq();
     const int orig = move.orig();
     const int dest = move.dest();
 
-    if (!is_pawn(square(orig)) || ep_sq_ == SquareNone || (orig != ep_dual(ep_sq_) - 1 && orig != ep_dual(ep_sq_) + 1))
+    if (orig == king)
         return true;
 
-    if (move.is_ep()) 
+    if (move.is_ep())
         return move_is_legal_ep(move);
 
     if (!pseudo_attack(orig, king, QueenFlags256))
@@ -959,7 +854,7 @@ bool Position::move_is_legal_ep(const Move& move) const
 
     const int oinc = delta_inc(king, orig);
     const int minc = orig - dest;
-    const int cap_inc = delta_inc(king, cap);
+    const int cinc = delta_inc(king, cap);
 
     assert(abs(minc) == 15 || abs(minc) == 17);
     
@@ -968,7 +863,7 @@ bool Position::move_is_legal_ep(const Move& move) const
     //  king on same rank of capturing and captured pawn?
 
     if (krank == orank) {
-        assert(oinc == cap_inc);
+        assert(oinc == cinc);
 
         int sq = king;
 
@@ -1009,18 +904,18 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         int sq = cap;
 
-        do { sq += cap_inc; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += cinc; } while ((piece256 = square(sq)) == PieceNone256);
 
         if ((piece256 & oflag) && (piece256 & BishopFlag256))
             return false;
     }
 
-    const int king_file = sq88_file(king);
-    const int orig_file = sq88_file(orig);
+    const int kfile = sq88_file(king);
+    const int ofile = sq88_file(orig);
 
     //  king on same file of capturing pawn?
     
-    if (king_file == orig_file) {
+    if (kfile == ofile) {
         assert(abs(oinc) == 16);
 
         if (!empty(king, orig))
