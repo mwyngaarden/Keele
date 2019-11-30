@@ -43,7 +43,7 @@ constexpr bool file_is_ok(int file)
     return file >= FileA && file <= FileH;
 }
 
-constexpr int pawn_inc(int side)
+constexpr int pawn_incr(int side)
 {
     return 16 - 32 * side;
 }

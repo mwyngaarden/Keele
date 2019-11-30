@@ -1,10 +1,6 @@
 change from returning and operation as bool to use != 
 
-GenerateLegal needs new home
-
 reduce calls to side_attacks!!
 
 dont do side_attacks on non-evasion king moves
 add to move_is_legal if (Debug) copy position, make king move, assert on side_attacks
-
-only make_move in perft on random moves to check speedup
