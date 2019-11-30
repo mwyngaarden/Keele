@@ -39,8 +39,8 @@ public:
 
     int is_ok(bool check_test = true) const;
 
-    uint64_t      key() const { return key_; }
-    uint64_t calc_key() const;
+    u64      key() const { return key_; }
+    u64 calc_key() const;
 
     void mark_pins(BitSet& pins) const;
 

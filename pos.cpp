@@ -15,9 +15,8 @@
 #include "pos.h"
 #include "string.h"
 #include "types.h"
+#include "util.h"
 using namespace std;
-
-static constexpr bool UpdateInfo = false;
 
 Position::Position(const string& fen)
 {
@@ -569,9 +568,9 @@ string Position::dump() const
     return oss.str();
 }
 
-uint64_t Position::calc_key() const
+u64 Position::calc_key() const
 {
-    uint64_t key = 0;
+    u64 key = 0;
 
     for (int i = 0; i < 64; i++) {
         int sq = to_sq88(i);
@@ -736,7 +735,7 @@ void Position::set_checkers_fast(const Move& move)
     // revealed check?
 
     if (oinc != dinc) {
-        if (delta_type(oinc) & QueenFlags256) {
+        if (pseudo_attack(oinc) & QueenFlags256) {
             sq = king + oinc;
 
             while ((piece256 = square(sq)) == PieceNone256) sq += oinc;

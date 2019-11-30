@@ -6,32 +6,32 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cmath>
 #include <cstdint>
-
 #include <x86intrin.h>
-
 #include "gen.h"
 #include "move.h"
 #include "perft.h"
 #include "pos.h"
 #include "string.h"
+#include "types.h"
 using namespace std;
 
 struct FenInfo {
     string fen;
 
-    array<int64_t, 9> nodes;
+    array<i64, 9> nodes;
 
     FenInfo(const string& f,
-            int64_t n0,
-            int64_t n1,
-            int64_t n2,
-            int64_t n3,
-            int64_t n4,
-            int64_t n5,
-            int64_t n6 = 0,
-            int64_t n7 = 0,
-            int64_t n8 = 0)
+            i64 n0,
+            i64 n1,
+            i64 n2,
+            i64 n3,
+            i64 n4,
+            i64 n5,
+            i64 n6 = 0,
+            i64 n7 = 0,
+            i64 n8 = 0)
         : fen(f)
     {
         nodes[0] = n0;
@@ -46,7 +46,7 @@ struct FenInfo {
     }
 };
 
-static int64_t perft(Position& pos, int depth, int height, int64_t& illegal_moves);
+static i64 perft(Position& pos, int depth, int height, i64& illegal_moves);
 
 static vector<FenInfo> read_epd(const string& filename);
 
@@ -66,30 +66,30 @@ string move_to_string(const Move& move)
 }
 
             
-int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, int64_t& total_cycles, bool startpos)
+i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos)
 {
-    int64_t nodes = 0;
+    i64 nodes = 0;
 
     double rcum_mnps = 0;
 
     vector<FenInfo> fen_info = read_epd("perft.epd");
 
-    int64_t invalid = 0;
+    i64 invalid = 0;
 
     for (size_t i = 0; i < fen_info.size(); i++) {
         const FenInfo& fi = fen_info[i];
 
         Position pos(fi.fen);
 
-        int64_t want_nodes = fi.nodes[depth - 1];
+        i64 want_nodes = fi.nodes[depth - 1];
 
         auto t0 = chrono::high_resolution_clock::now();
         
-        int64_t rdtsc0 = __rdtsc();
+        i64 rdtsc0 = __rdtsc();
 
-        int64_t have_nodes = perft(pos, depth, 0, illegal_moves);
+        i64 have_nodes = perft(pos, depth, 0, illegal_moves);
 
-        int64_t rdtsc1 = __rdtsc();
+        i64 rdtsc1 = __rdtsc();
 
         auto t1 = chrono::high_resolution_clock::now();
 
@@ -97,7 +97,7 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
 
         double secs = microseconds.count() / 1000000.0;
         
-        int64_t cycles = rdtsc1 - rdtsc0;
+        i64 cycles = rdtsc1 - rdtsc0;
 
         int cpn = int(double(cycles) / double(have_nodes) + 0.5);
         int mnps = int(double(have_nodes) / secs / 1000000.0 + 0.5);
@@ -105,7 +105,7 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         total_microseconds += microseconds.count();
         total_cycles += cycles;
         
-        int64_t diff_nodes = have_nodes - want_nodes;
+        i64 diff_nodes = have_nodes - want_nodes;
 
         invalid += diff_nodes != 0;
 
@@ -113,22 +113,21 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
         
         double cum_mnps = int(double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6 + 0.5);
 
-        if (i == 0)
-            rcum_mnps = cum_mnps;
-        else
-            rcum_mnps = 0.9 * rcum_mnps + 0.1 * cum_mnps;
+        rcum_mnps = i == 0
+                  ?                         cum_mnps
+                  : 0.6 * rcum_mnps + 0.4 * cum_mnps;
 
 
-        if (((i + 1) % 100) == 0) {
-            cout << i                       << ','
-                 << depth                   << ','
-                 << want_nodes              << ',' 
-                 << have_nodes              << ',' 
-                 << diff_nodes              << ','
-                 << invalid                 << ','
-                 << cpn                     << ','
-                 << mnps                    << ','
-                 << int(rcum_mnps)          << ',';
+        if ((i + 1) % 100 == 0) {
+            cout << "n = "      << setw(4) << (i + 1)               << ' '
+                 << "d = "      << setw(1) << depth                 << ' '
+                 //<< "wn = "     << want_nodes       << ' '
+                 //<< "hn = "     << have_nodes       << ' '
+                 << "dn = "     << setw(1) << diff_nodes            << ' '
+                 << "inv = "    << setw(1) << invalid               << ' '
+                 << "cpn = "    << setw(4) << cpn                   << ' '
+                 << "mnps = "   << setw(3) << mnps                  << ' '
+                 << "cmnps = "  << setw(3) << int(rcum_mnps + 0.5)  << ' ';
 
             cout << (diff_nodes == 0 ? "PASS" : "FAIL") << endl;
         }
@@ -149,17 +148,14 @@ int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, in
     return nodes;
 }
 
-int64_t perft(Position& pos,
-              int depth,
-              int height,
-              int64_t& illegal_moves)
+i64 perft(Position& pos, int depth, int height, i64& illegal_moves)
 {
     if (depth == 0) return 1;
 
     MoveList moves;
 
-    int64_t legal_moves = 0;
-    int64_t total_moves = gen_legal_moves(moves, pos);
+    i64 legal_moves = 0;
+    i64 total_moves = gen_legal_moves(moves, pos);
 
     if (GenerateLegal && !Debug && depth == 1) return total_moves;
 
@@ -200,15 +196,15 @@ vector<FenInfo> read_epd(const string& filename)
 
         const string& fen = list[0];
 
-        int64_t n0 = stoll(list[1]);
-        int64_t n1 = stoll(list[2]);
-        int64_t n2 = stoll(list[3]);
-        int64_t n3 = stoll(list[4]);
-        int64_t n4 = stoll(list[5]);
-        int64_t n5 = stoll(list[6]);
-        int64_t n6 = list.size() >=  8 ? stoll(list[7]) : 0;
-        int64_t n7 = list.size() >=  9 ? stoll(list[8]) : 0;
-        int64_t n8 = list.size() >= 10 ? stoll(list[9]) : 0;
+        i64 n0 = stoll(list[1]);
+        i64 n1 = stoll(list[2]);
+        i64 n2 = stoll(list[3]);
+        i64 n3 = stoll(list[4]);
+        i64 n4 = stoll(list[5]);
+        i64 n5 = stoll(list[6]);
+        i64 n6 = list.size() >=  8 ? stoll(list[7]) : 0;
+        i64 n7 = list.size() >=  9 ? stoll(list[8]) : 0;
+        i64 n8 = list.size() >= 10 ? stoll(list[9]) : 0;
 
         fen_info.emplace_back(fen, n0, n1, n2, n3, n4, n5, n6, n7, n8);
     }

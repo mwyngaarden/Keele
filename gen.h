@@ -18,10 +18,9 @@ std::size_t gen_pseudo_moves    (MoveList& moves, const Position& pos);
 std::size_t gen_legal_moves     (MoveList& moves, const Position& pos);
 std::size_t gen_evasion_moves   (MoveList& moves, const Position& pos);
 
-u8  delta_type      (int inc);
-u8  delta_type      (int orig, int dest);
 int delta_inc       (int orig, int dest);
 
+u8  pseudo_attack   (int inc);
 bool pseudo_attack  (int orig, int dest);
 bool pseudo_attack  (int orig, int dest, u8 piece);
 

@@ -4,6 +4,15 @@
 #include <cassert>
 #include <cstdint>
 
+constexpr bool GenerateLegal = true;
+constexpr bool UpdateInfo = false;
+
+#ifndef NDEBUG
+constexpr bool Debug = true;
+#else
+constexpr bool Debug = false;
+#endif
+
 namespace Util {
 
     template <typename T, std::size_t N>
@@ -89,12 +98,5 @@ namespace Util {
         std::size_t size_ = 0;
     };
 }
-
-
-
-
-
-
-
 
 #endif

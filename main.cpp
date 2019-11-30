@@ -9,13 +9,14 @@
 #include "pos.h"
 #include "search.h"
 #include "square.h"
+#include "types.h"
 using namespace std;
 
 struct Pos {
     const char* fen;
-    uint64_t key;
+    u64 key;
 
-    Pos(const char* f, uint64_t k) : fen(f), key(k) { }
+    Pos(const char* f, u64 k) : fen(f), key(k) { }
 };
 
 void validate_hash()
@@ -58,11 +59,11 @@ int main(int argc, char *argv[])
     int depth = stoi(argv[1]); 
     bool startpos = argc == 3;
     
-    int64_t illegal_moves = 0;
-    int64_t total_microseconds = 0;
-    int64_t total_cycles = 0;
+    i64 illegal_moves = 0;
+    i64 total_microseconds = 0;
+    i64 total_cycles = 0;
 
-    int64_t nodes = perft(depth, illegal_moves, total_microseconds, total_cycles, startpos);
+    i64 nodes = perft(depth, illegal_moves, total_microseconds, total_cycles, startpos);
 
     cout << "nodes: " << nodes << endl;
     cout << "milliseconds: " << double(total_microseconds) / 1000.0 << endl;

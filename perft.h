@@ -4,7 +4,8 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include "types.h"
 
-int64_t perft(int depth, int64_t& illegal_moves, int64_t& total_microseconds, int64_t& total_cycles, bool startpos);
+i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos);
 
 #endif

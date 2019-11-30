@@ -7,8 +7,8 @@
 #include "types.h"
 using namespace std;
 
-const constexpr int DeltaCount = 240;
-const constexpr int DeltaOffset = 120;
+const constexpr int DeltaCount      = 240;
+const constexpr int DeltaOffset     = 120;
 
 static int delta_inc_lut[DeltaCount];
 static int delta_type_lut[DeltaCount];
@@ -113,11 +113,12 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 
 size_t gen_legal_moves(MoveList& moves, const Position& pos)
 {
+    assert(pos.is_ok());
     assert(moves.empty());
 
-    size_t count = pos.checkers() > 0 
-                 ? gen_evasion_moves(moves, pos)
-                 : gen_pseudo_moves(moves, pos);
+    const size_t count = pos.checkers() > 0 
+                       ? gen_evasion_moves(moves, pos)
+                       : gen_pseudo_moves(moves, pos);
 
     if (Debug && (GenerateLegal || pos.checkers() > 0)) {
         Position p(pos);
@@ -692,19 +693,11 @@ int delta_inc(int orig, int dest)
     return delta_inc_lut[DeltaOffset + dest - orig];
 }
 
-u8 delta_type(int inc)
+u8 pseudo_attack(int inc)
 {
     assert(inc >= -DeltaOffset && inc < DeltaOffset);
 
     return delta_type_lut[DeltaOffset + inc];
-}
-
-u8 delta_type(int orig, int dest)
-{
-    assert(sq88_is_ok(orig));
-    assert(sq88_is_ok(dest));
-
-    return delta_type_lut[DeltaOffset + dest - orig];
 }
 
 bool pseudo_attack(int orig, int dest)

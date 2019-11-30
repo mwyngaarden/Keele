@@ -6,14 +6,6 @@
 
 using BitSet = std::bitset<128>;
 
-constexpr bool GenerateLegal = true;
-
-#ifndef NDEBUG
-constexpr bool Debug = true;
-#else
-constexpr bool Debug = false;
-#endif
-
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
