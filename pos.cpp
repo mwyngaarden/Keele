@@ -289,8 +289,6 @@ void Position::unmake_move(const Move& move, const Undo& undo)
 
 int Position::is_ok(bool check_test) const
 {
-    //return 0;
-
     if (!side_is_ok(side_)) return __LINE__;
 
     if (piece_list_[WK12].size() != 1) return __LINE__;
