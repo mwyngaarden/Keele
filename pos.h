@@ -1,6 +1,7 @@
 #ifndef POS_H
 #define POS_H
 
+#include <array>
 #include <bitset>
 #include <string>
 #include <vector>
@@ -166,7 +167,8 @@ private:
         return square_[36 + sq];
     }
     
-    u8 square_[16 * 12];
+    //u8 square_[16 * 12];
+    std::array<u8, 16 * 12> square_;
     u8 pawn_file_[2][10];
 
     int side_ = -1;
@@ -180,7 +182,8 @@ private:
 
     u64 key_ = 0;
 
-    PieceList piece_list_[12];
+    //PieceList piece_list_[12];
+    std::array<PieceList, 12> piece_list_;
 };
 
 #endif

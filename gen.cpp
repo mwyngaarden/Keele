@@ -141,7 +141,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Pawn));
 
-    u8 oflag = make_flag(flip_side(pos.side()));
+    const u8 oflag = make_flag(flip_side(pos.side()));
 
     const int incr = pawn_incr(pos.side());
     const int rank = sq88_rank(orig, pos.side());
@@ -215,17 +215,16 @@ void gen_knight_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Knight));
 
-    u8 oflag = make_flag(flip_side(pos.side()));
-    u8 piece;
+    const u8 mflag = make_flag(pos.side());
 
     for (auto incr : KnightIncrs) {
-        int dest = orig;
+        const int dest = orig + incr;
+        
+        //if (!sq88_is_ok(dest)) continue;
 
-        piece = pos[dest += incr];
+        const u8 piece = pos[dest];
 
-        if (piece == PieceNone256)
-            moves.add(Move(orig, dest));
-        else if (piece & oflag)
+        if (piece != PieceInvalid256 && (piece & mflag) == 0)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -240,9 +239,9 @@ void gen_bishop_moves(MoveList& moves, const Position& pos, const int orig)
     u8 piece;
 
     for (auto incr : BishopIncrs) {
-        int dest = orig;
+        int dest = orig + incr;
 
-        while ((piece = pos[dest += incr]) == PieceNone256)
+        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
             moves.add(Move(orig, dest));
 
         if (piece & oflag)
@@ -260,9 +259,9 @@ void gen_rook_moves(MoveList& moves, const Position& pos, const int orig)
     u8 piece;
 
     for (auto incr : RookIncrs) {
-        int dest = orig;
+        int dest = orig + incr;
 
-        while ((piece = pos[dest += incr]) == PieceNone256)
+        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
             moves.add(Move(orig, dest));
 
         if (piece & oflag)
@@ -280,9 +279,9 @@ void gen_queen_moves(MoveList& moves, const Position& pos, const int orig)
     u8 piece;
 
     for (auto incr : QueenIncrs) {
-        int dest = orig;
+        int dest = orig + incr;
 
-        while ((piece = pos[dest += incr]) == PieceNone256)
+        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
             moves.add(Move(orig, dest));
 
         if (piece & oflag)
@@ -297,18 +296,19 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
 
+    const int mside =           pos.side();
     const int oside = flip_side(pos.side());
     
-    const u8 oflag = make_flag(oside);
+    const u8 mflag = make_flag(mside);
 
     for (auto incr : QueenIncrs) {
         const int dest = king + incr;
-
-        if (!sq88_is_ok(dest)) continue;
+        
+        //if (!sq88_is_ok(dest)) continue;
 
         const u8 piece = pos[dest];
 
-        if (piece == PieceNone256 || (piece & oflag))
+        if (piece != PieceInvalid256 && (piece & mflag) == 0)
             if (!GenerateLegal || !pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
@@ -359,7 +359,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const int mside = pos.side();
     const int oside = flip_side(pos.side());
     
-    const u8 oflag = make_flag(oside);
+    const u8 mflag = make_flag(mside);
 
     for (auto incr : QueenIncrs) {
         if (incr == -inc1 || incr == -inc2)
@@ -367,9 +367,11 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
 
         const int dest = king + incr;
 
+        //if (!sq88_is_ok(dest)) continue;
+
         const u8 piece = pos[dest];
 
-        if (piece == PieceNone256 || (piece & oflag))
+        if (piece != PieceInvalid256 && (piece & mflag) == 0)
             if (!pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }

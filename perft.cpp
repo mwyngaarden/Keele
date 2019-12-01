@@ -113,10 +113,7 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
         
         double cum_mnps = int(double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6 + 0.5);
 
-        rcum_mnps = i == 0
-                  ?                         cum_mnps
-                  : 0.6 * rcum_mnps + 0.4 * cum_mnps;
-
+        rcum_mnps = i == 0 ? cum_mnps : (4.0/5.0) * rcum_mnps + (1.0/5.0) * cum_mnps;
 
         if ((i + 1) % 100 == 0) {
             cout << "n = "      << setw(4) << (i + 1)               << ' '
