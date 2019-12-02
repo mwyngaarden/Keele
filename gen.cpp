@@ -74,14 +74,14 @@ size_t gen_pseudo_moves(MoveList& moves, const Position& pos)
 {
     assert(pos.checkers() == 0);
 
-    const int side = pos.side();
-    
     gen_king_moves(moves, pos, true);
 
     BitSet pins;
 
     if (GenerateLegal)
         gen_pinned_moves(moves, pos, pins);
+    
+    const int side = pos.side();
 
     for (auto orig : pos.piece_list(WP12 + side)) {
         if (GenerateLegal && pins.test(orig)) continue;
@@ -143,7 +143,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
 
     const u8 oflag = make_flag(flip_side(pos.side()));
 
-    const int incr = pawn_incr(pos.side());
+    const int pincr = pawn_incr(pos.side());
     const int rank = sq88_rank(orig, pos.side());
 
     assert(rank >= Rank2 && rank <= Rank7);
@@ -151,7 +151,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
     // promotions
 
     if (rank == Rank7) {
-        if (int dest = orig + incr - 1; pos[dest] & oflag) {
+        if (int dest = orig + pincr - 1; pos[dest] & oflag) {
             Move m(orig, dest, pos[dest]);
 
             moves.add(m | Move::PromoKnightFlag);
@@ -160,7 +160,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
             moves.add(m | Move::PromoQueenFlag);
         }
 
-        if (int dest = orig + incr + 1; pos[dest] & oflag) {
+        if (int dest = orig + pincr + 1; pos[dest] & oflag) {
             Move m(orig, dest, pos[dest]);
 
             moves.add(m | Move::PromoKnightFlag);
@@ -169,7 +169,7 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
             moves.add(m | Move::PromoQueenFlag);
         }
 
-        if (int dest = orig + incr; pos.empty(dest)) {
+        if (int dest = orig + pincr; pos.empty(dest)) {
             Move m(orig, dest);
 
             moves.add(m | Move::PromoKnightFlag);
@@ -188,20 +188,20 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int orig)
             }
         }
 
-        if (int dest = orig + incr - 1; pos[dest] & oflag)
+        if (int dest = orig + pincr - 1; pos[dest] & oflag)
             moves.add(Move(orig, dest, pos[dest]));
 
-        if (int dest = orig + incr + 1; pos[dest] & oflag)
+        if (int dest = orig + pincr + 1; pos[dest] & oflag)
             moves.add(Move(orig, dest, pos[dest]));
 
         // single push
         
-        if (int dest = orig + incr; pos.empty(dest)) {
+        if (int dest = orig + pincr; pos.empty(dest)) {
             moves.add(Move(orig, dest));
 
             // double push
 
-            dest += incr;
+            dest += pincr;
 
             if (rank == Rank2 && pos.empty(dest))
                 moves.add(Move(orig, dest) | Move::DoubleFlag);
@@ -215,16 +215,14 @@ void gen_knight_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Knight));
 
-    const u8 mflag = make_flag(pos.side());
+    const u8 oflag = make_flag(flip_side(pos.side()));
 
     for (auto incr : KnightIncrs) {
         const int dest = orig + incr;
         
-        if (!sq88_is_ok(dest)) continue;
-
         const u8 piece = pos[dest];
 
-        if ((piece & mflag) == 0)
+        if (piece == PieceNone256 || (piece & oflag))
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -235,17 +233,21 @@ void gen_bishop_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Bishop));
 
-    u8 oflag = make_flag(flip_side(pos.side()));
+    const u8 oflag = make_flag(flip_side(pos.side()));
+
     u8 piece;
 
     for (auto incr : BishopIncrs) {
-        int dest = orig + incr;
+        for (int dest = orig + incr; (piece = pos[dest]) != PieceInvalid256; dest += incr) {
+            if (piece == PieceNone256)
+                moves.add(Move(orig, dest));
+            else {
+                if (piece & oflag)
+                    moves.add(Move(orig, dest, piece));
 
-        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
-            moves.add(Move(orig, dest));
-
-        if (piece & oflag)
-            moves.add(Move(orig, dest, piece));
+                break;
+            }
+        }
     }
 }
 
@@ -255,17 +257,21 @@ void gen_rook_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Rook));
     
-    u8 oflag = make_flag(flip_side(pos.side()));
+    const u8 oflag = make_flag(flip_side(pos.side()));
+
     u8 piece;
 
     for (auto incr : RookIncrs) {
-        int dest = orig + incr;
+        for (int dest = orig + incr; (piece = pos[dest]) != PieceInvalid256; dest += incr) {
+            if (piece == PieceNone256)
+                moves.add(Move(orig, dest));
+            else {
+                if (piece & oflag)
+                    moves.add(Move(orig, dest, piece));
 
-        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
-            moves.add(Move(orig, dest));
-
-        if (piece & oflag)
-            moves.add(Move(orig, dest, piece));
+                break;
+            }
+        }
     }
 }
 
@@ -275,17 +281,21 @@ void gen_queen_moves(MoveList& moves, const Position& pos, const int orig)
     assert(pos.is_me(orig));
     assert(pos.is_piece(orig, Queen));
 
-    u8 oflag = make_flag(flip_side(pos.side()));
+    const u8 oflag = make_flag(flip_side(pos.side()));
+
     u8 piece;
 
     for (auto incr : QueenIncrs) {
-        int dest = orig + incr;
+        for (int dest = orig + incr; (piece = pos[dest]) != PieceInvalid256; dest += incr) {
+            if (piece == PieceNone256)
+                moves.add(Move(orig, dest));
+            else {
+                if (piece & oflag)
+                    moves.add(Move(orig, dest, piece));
 
-        for ( ; (piece = pos[dest]) == PieceNone256; dest += incr)
-            moves.add(Move(orig, dest));
-
-        if (piece & oflag)
-            moves.add(Move(orig, dest, piece));
+                break;
+            }
+        }
     }
 }
 
@@ -296,19 +306,16 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
     assert(pos.is_me(king));
     assert(pos.is_piece(king, King));
 
-    const int mside =           pos.side();
     const int oside = flip_side(pos.side());
     
-    const u8 mflag = make_flag(mside);
+    const u8 oflag = make_flag(oside);
 
     for (auto incr : QueenIncrs) {
         const int dest = king + incr;
-        
-        if (!sq88_is_ok(dest)) continue;
 
         const u8 piece = pos[dest];
-
-        if ((piece & mflag) == 0)
+        
+        if (piece == PieceNone256 || (piece & oflag))
             if (!GenerateLegal || !pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
@@ -357,7 +364,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const int mside = pos.side();
     const int oside = flip_side(pos.side());
     
-    const u8 mflag = make_flag(mside);
+    const u8 oflag = make_flag(oside);
 
     for (auto incr : QueenIncrs) {
         if (incr == -incr1 || incr == -incr2)
@@ -365,11 +372,9 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
 
         const int dest = king + incr;
 
-        if (!sq88_is_ok(dest)) continue;
-
         const u8 piece = pos[dest];
 
-        if ((piece & mflag) == 0)
+        if (piece == PieceNone256 || (piece & oflag))
             if (!pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
@@ -385,7 +390,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const u8 opawn = make_pawn(oside);
 
     const int rank = sq88_rank(checker1, mside);
-    const int incr = pawn_incr(mside);
+    const int pincr = pawn_incr(mside);
 
     // pawn captures checking piece
 
@@ -397,7 +402,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
             moves.add(Move(orig, pos.ep_sq(), opawn) | Move::EPFlag);
     }
 
-    if (int orig = checker1 - incr - 1; pos[orig] == mpawn && !pins.test(orig)) {
+    if (int orig = checker1 - pincr - 1; pos[orig] == mpawn && !pins.test(orig)) {
         Move m(orig, checker1, pos[checker1]);
 
         if (rank == Rank8) {
@@ -410,7 +415,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
             moves.add(m);
     }
 
-    if (int orig = checker1 - incr + 1; pos[orig] == mpawn && !pins.test(orig)) {
+    if (int orig = checker1 - pincr + 1; pos[orig] == mpawn && !pins.test(orig)) {
         Move m(orig, checker1, pos[checker1]);
 
         if (rank == Rank8) {
@@ -422,10 +427,59 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
         else
             moves.add(m);
     }
-
-
+    
     // piece captures checking piece
 
+    for (auto orig : pos.piece_list(WN12 + mside)) {
+        if (pins.test(orig))
+            continue;
+
+        if (!pseudo_attack(orig, checker1, KnightFlag256))
+            continue;
+
+        moves.add(Move(orig, checker1, pos[checker1]));
+    }
+
+    for (auto orig : pos.piece_list(WB12 + mside)) {
+        if (pins.test(orig))
+            continue;
+
+        if (!pseudo_attack(orig, checker1, BishopFlag256))
+            continue;
+
+        if (!pos.empty(orig, checker1))
+            continue;
+        
+        moves.add(Move(orig, checker1, pos[checker1]));
+    }
+
+    for (auto orig : pos.piece_list(WR12 + mside)) {
+        if (pins.test(orig))
+            continue;
+
+        if (!pseudo_attack(orig, checker1, RookFlag256))
+            continue;
+
+        if (!pos.empty(orig, checker1))
+            continue;
+        
+        moves.add(Move(orig, checker1, pos[checker1]));
+    }
+    
+    for (auto orig : pos.piece_list(WQ12 + mside)) {
+        if (pins.test(orig))
+            continue;
+
+        if (!pseudo_attack(orig, checker1, QueenFlags256))
+            continue;
+
+        if (!pos.empty(orig, checker1))
+            continue;
+        
+        moves.add(Move(orig, checker1, pos[checker1]));
+    }
+
+    /*
     for (int p12 = WN12 + mside; p12 <= BQ12; p12 += 2) {
         for (auto orig : pos.piece_list(p12)) {
             if (pins.test(orig))
@@ -442,6 +496,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
             moves.add(Move(orig, checker1, pos[checker1]));
         }
     }
+    */
 
     // blockers if slider
 
@@ -518,7 +573,7 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
 void gen_pawn_moves(MoveList& moves, const Position& pos, const int dest, const BitSet& pins)
 {
     const int mside = pos.side();
-    const int incr = pawn_incr(mside);
+    const int pincr = pawn_incr(mside);
     const int rank = sq88_rank(dest, mside);
 
     const u8 mpawn = make_pawn(mside);
@@ -528,16 +583,16 @@ void gen_pawn_moves(MoveList& moves, const Position& pos, const int dest, const 
     // double push
 
     if (rank == Rank4) {
-        orig = dest - incr - incr;
+        orig = dest - pincr - pincr;
 
         if (pos[orig] == mpawn && !pins.test(orig))
-            if (pos[orig + incr] == PieceNone256)
+            if (pos[orig + pincr] == PieceNone256)
                 moves.add(Move(orig, dest) | Move::DoubleFlag);
     }
 
     // single push
 
-    orig = dest - incr;
+    orig = dest - pincr;
 
     if (pos[orig] == mpawn && !pins.test(orig)) {
         Move m(orig, dest);

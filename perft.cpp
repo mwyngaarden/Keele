@@ -118,8 +118,8 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
                 //<< "hn = "     << have_nodes       << ' '
                 << "dn = "     << setw(1) << diff_nodes         << ' '
                 << "inv = "    << setw(1) << invalid            << ' '
-                << "cpn = "    << setw(5) << cpn                << ' '
-                << "cmnps = " << setw(5) << cum_mnps           << ' '
+                << "cpn = "    << setw(6) << cpn                << ' '
+                << "cmnps = "  << setw(5) << cum_mnps           << ' '
                 << (diff_nodes == 0 ? "PASS" : "FAIL");
 
             cout << ss.str() << endl;
