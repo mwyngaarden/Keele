@@ -13,7 +13,7 @@ LIBS =
 COMPILE_FLAGS = -std=c++17 -Wall -Wextra -pedantic
 
 # Additional release-specific flags
-RCOMPILE_FLAGS = -O3 -flto -march=native -DNDEBUG -fno-exceptions -fno-rtti
+RCOMPILE_FLAGS = -Ofast -flto -mtune=native -DNDEBUG -fno-exceptions -fno-rtti
 #RCOMPILE_FLAGS = -g -O2 -march=native -DNDEBUG
 
 # Additional debug-specific flags

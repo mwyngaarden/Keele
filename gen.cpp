@@ -434,10 +434,8 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
         if (pins.test(orig))
             continue;
 
-        if (!pseudo_attack(orig, checker1, KnightFlag256))
-            continue;
-
-        moves.add(Move(orig, checker1, pos[checker1]));
+        if (pseudo_attack(orig, checker1, KnightFlag256))
+            moves.add(Move(orig, checker1, pos[checker1]));
     }
 
     for (auto orig : pos.piece_list(WB12 + mside)) {
@@ -447,10 +445,8 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
         if (!pseudo_attack(orig, checker1, BishopFlag256))
             continue;
 
-        if (!pos.empty(orig, checker1))
-            continue;
-        
-        moves.add(Move(orig, checker1, pos[checker1]));
+        if (pos.empty(orig, checker1))
+            moves.add(Move(orig, checker1, pos[checker1]));
     }
 
     for (auto orig : pos.piece_list(WR12 + mside)) {
@@ -460,10 +456,8 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
         if (!pseudo_attack(orig, checker1, RookFlag256))
             continue;
 
-        if (!pos.empty(orig, checker1))
-            continue;
-        
-        moves.add(Move(orig, checker1, pos[checker1]));
+        if (pos.empty(orig, checker1))
+            moves.add(Move(orig, checker1, pos[checker1]));
     }
     
     for (auto orig : pos.piece_list(WQ12 + mside)) {
@@ -473,30 +467,9 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
         if (!pseudo_attack(orig, checker1, QueenFlags256))
             continue;
 
-        if (!pos.empty(orig, checker1))
-            continue;
-        
-        moves.add(Move(orig, checker1, pos[checker1]));
-    }
-
-    /*
-    for (int p12 = WN12 + mside; p12 <= BQ12; p12 += 2) {
-        for (auto orig : pos.piece_list(p12)) {
-            if (pins.test(orig))
-                continue;
-
-            const u8 piece = pos[orig];
-
-            if (!pseudo_attack(orig, checker1, piece))
-                continue;
-
-            if (is_slider(piece) && !pos.empty(orig, checker1))
-                continue;
-
+        if (pos.empty(orig, checker1))
             moves.add(Move(orig, checker1, pos[checker1]));
-        }
     }
-    */
 
     // blockers if slider
 
@@ -515,8 +488,6 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
     const int mside = pos.side();
 
     for (int orig : pos.piece_list(WN12 + mside)) {
-        assert(sq88_is_ok(orig));
-
         if (pins.test(orig))
             continue;
 
@@ -525,48 +496,36 @@ void gen_piece_moves(MoveList& moves, const Position& pos, const int dest, const
     }
 
     for (int orig : pos.piece_list(WB12 + mside)) {
-        assert(sq88_is_ok(orig));
-
         if (pins.test(orig))
             continue;
 
         if (!pseudo_attack(orig, dest, BishopFlag256))
             continue;
 
-        if (!pos.empty(orig, dest))
-            continue;
-
-        moves.add(Move(orig, dest, pos[dest]));
+        if (pos.empty(orig, dest))
+            moves.add(Move(orig, dest, pos[dest]));
     }
 
     for (int orig : pos.piece_list(WR12 + mside)) {
-        assert(sq88_is_ok(orig));
-
         if (pins.test(orig))
             continue;
 
         if (!pseudo_attack(orig, dest, RookFlag256))
             continue;
 
-        if (!pos.empty(orig, dest))
-            continue;
-
-        moves.add(Move(orig, dest, pos[dest]));
+        if (pos.empty(orig, dest))
+            moves.add(Move(orig, dest, pos[dest]));
     }
 
     for (int orig : pos.piece_list(WQ12 + mside)) {
-        assert(sq88_is_ok(orig));
-
         if (pins.test(orig))
             continue;
 
         if (!pseudo_attack(orig, dest, QueenFlags256))
             continue;
 
-        if (!pos.empty(orig, dest))
-            continue;
-
-        moves.add(Move(orig, dest, pos[dest]));
+        if (pos.empty(orig, dest))
+            moves.add(Move(orig, dest, pos[dest]));
     }
 }
 
@@ -621,12 +580,12 @@ void gen_pinned_moves(MoveList& moves, const Position& pos, int attacker, int pi
     assert(pos.king_sq() == king);
     assert(is_slider(pos[attacker]));
 
-    const u8 mpiece256 = pos[pinned];
-    const u8 opiece256 = pos[attacker];
+    const u8 mpiece = pos[pinned];
+    const u8 opiece = pos[attacker];
 
     int sq;
 
-    if (is_pawn(mpiece256)) {
+    if (is_pawn(mpiece)) {
         const int mside = pos.side();
         const int pincr = pawn_incr(mside);
         const int rank = sq88_rank(pinned, mside);
@@ -656,7 +615,7 @@ void gen_pinned_moves(MoveList& moves, const Position& pos, int attacker, int pi
             }
         }
         else if (sq - 1 == attacker || sq + 1 == attacker) {
-            Move m(pinned, attacker, opiece256);
+            Move m(pinned, attacker, opiece);
                 
             if (rank == Rank7) {
                 moves.add(m | Move::PromoKnightFlag);
@@ -668,13 +627,13 @@ void gen_pinned_moves(MoveList& moves, const Position& pos, int attacker, int pi
                 moves.add(m);
         }
     }
-    else if (pseudo_attack(pinned, attacker, mpiece256)) {
-        assert(is_slider(mpiece256));
+    else if (pseudo_attack(pinned, attacker, mpiece)) {
+        assert(is_slider(mpiece));
 
         for (sq = king   - incr; pos.empty(sq); sq -= incr) moves.add(Move(pinned, sq));
         for (sq = pinned - incr; pos.empty(sq); sq -= incr) moves.add(Move(pinned, sq));
 
-        moves.add(Move(pinned, attacker, opiece256));
+        moves.add(Move(pinned, attacker, opiece));
     }
 }
 
