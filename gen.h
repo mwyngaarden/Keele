@@ -1,7 +1,6 @@
 #ifndef GEN_H
 #define GEN_H
 
-#include <array>
 #include "move.h"
 #include "piece.h"
 #include "pos.h"

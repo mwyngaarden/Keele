@@ -1,7 +1,6 @@
 #!/bin/bash
 
-rm *.gcda
-rm a.out
+rm -f *.gcda a.out
 
 g++ -std=c++17 -DNDEBUG -march=native -O3 -flto -fno-rtti -fno-exceptions -fprofile-generate *.cpp
 

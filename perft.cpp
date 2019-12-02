@@ -68,11 +68,7 @@ string move_to_string(const Move& move)
             
 i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos)
 {
-    constexpr double alpha = 2.0 / 3.0;
-
     i64 nodes = 0;
-
-    double rcum_mnps = 0;
 
     vector<FenInfo> fen_info = read_epd("perft.epd");
 
@@ -97,12 +93,9 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
 
         auto microseconds = chrono::duration_cast<chrono::microseconds>(t1 - t0);
 
-        double secs = microseconds.count() / 1e+6;
-        
         i64 cycles = rdtsc1 - rdtsc0;
 
         double cpn = double(cycles) / double(have_nodes);
-        double mnps = double(have_nodes) / secs / 1e+6;
 
         total_microseconds += microseconds.count();
         total_cycles += cycles;
@@ -115,11 +108,6 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
         
         double cum_mnps = double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6;
 
-        if (i == 0)
-            rcum_mnps = cum_mnps;
-        else
-            rcum_mnps = alpha * rcum_mnps + (1.0 - alpha) * cum_mnps;
-
         if ((i + 1) % 100 == 0) {
             stringstream ss;
 
@@ -131,8 +119,7 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
                 << "dn = "     << setw(1) << diff_nodes         << ' '
                 << "inv = "    << setw(1) << invalid            << ' '
                 << "cpn = "    << setw(5) << cpn                << ' '
-                << "rcmnps = " << setw(5) << rcum_mnps          << ' '
-                << "tcmnps = " << setw(5) << cum_mnps           << ' '
+                << "cmnps = " << setw(5) << cum_mnps           << ' '
                 << (diff_nodes == 0 ? "PASS" : "FAIL");
 
             cout << ss.str() << endl;

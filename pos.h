@@ -1,7 +1,6 @@
 #ifndef POS_H
 #define POS_H
 
-#include <array>
 #include <bitset>
 #include <string>
 #include <vector>
