@@ -20,8 +20,7 @@ std::size_t gen_evasion_moves   (MoveList& moves, const Position& pos);
 
 int delta_incr      (int orig, int dest);
 
-u8  pseudo_attack   (int incr);
-bool pseudo_attack  (int orig, int dest);
+u8   pseudo_attack  (int incr);
 bool pseudo_attack  (int orig, int dest, u8 piece);
 
 int castle_flag(int sq);

@@ -220,11 +220,11 @@ void gen_knight_moves(MoveList& moves, const Position& pos, const int orig)
     for (auto incr : KnightIncrs) {
         const int dest = orig + incr;
         
-        //if (!sq88_is_ok(dest)) continue;
+        if (!sq88_is_ok(dest)) continue;
 
         const u8 piece = pos[dest];
 
-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
+        if ((piece & mflag) == 0)
             moves.add(Move(orig, dest, piece));
     }
 }
@@ -304,11 +304,11 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
     for (auto incr : QueenIncrs) {
         const int dest = king + incr;
         
-        //if (!sq88_is_ok(dest)) continue;
+        if (!sq88_is_ok(dest)) continue;
 
         const u8 piece = pos[dest];
 
-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
+        if ((piece & mflag) == 0)
             if (!GenerateLegal || !pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
@@ -346,15 +346,13 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
 {
     const int king = pos.king_sq();
 
-    const int checkers_count = pos.checkers();
-
-    assert(checkers_count > 0);
+    assert(pos.checkers() > 0);
 
     const int checker1 =                      pos.checkers(0);
-    const int checker2 = checkers_count > 1 ? pos.checkers(1) : SquareNone;
+    const int checker2 = pos.checkers() > 1 ? pos.checkers(1) : SquareNone;
 
-    const int inc1 =                           is_slider(pos[checker1]) ? delta_incr(king, checker1) : 0;
-    const int inc2 = checker2 != SquareNone && is_slider(pos[checker2]) ? delta_incr(king, checker2) : 0;
+    const int incr1 =                           is_slider(pos[checker1]) ? delta_incr(king, checker1) : 0;
+    const int incr2 = checker2 != SquareNone && is_slider(pos[checker2]) ? delta_incr(king, checker2) : 0;
     
     const int mside = pos.side();
     const int oside = flip_side(pos.side());
@@ -362,21 +360,21 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     const u8 mflag = make_flag(mside);
 
     for (auto incr : QueenIncrs) {
-        if (incr == -inc1 || incr == -inc2)
+        if (incr == -incr1 || incr == -incr2)
             continue;
 
         const int dest = king + incr;
 
-        //if (!sq88_is_ok(dest)) continue;
+        if (!sq88_is_ok(dest)) continue;
 
         const u8 piece = pos[dest];
 
-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
+        if ((piece & mflag) == 0)
             if (!pos.side_attacks(oside, dest))
                 moves.add(Move(king, dest, piece));
     }
 
-    if (checkers_count == 2)
+    if (pos.checkers() == 2)
         return moves.size();
 
     BitSet pins;
@@ -392,17 +390,11 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     // pawn captures checking piece
 
     if (checker1 == ep_dual(pos.ep_sq())) {
-        int pawn = checker1;
-
-        pawn -= 1;
-
-        if (pos[pawn] == mpawn && !pins.test(pawn))
-            moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
+        if (int orig = checker1 - 1; pos[orig] == mpawn && !pins.test(orig))
+            moves.add(Move(orig, pos.ep_sq(), opawn) | Move::EPFlag);
         
-        pawn += 2;
-        
-        if (pos[pawn] == mpawn && !pins.test(pawn))
-            moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
+        if (int orig = checker1 + 1; pos[orig] == mpawn && !pins.test(orig))
+            moves.add(Move(orig, pos.ep_sq(), opawn) | Move::EPFlag);
     }
 
     if (int orig = checker1 - incr - 1; pos[orig] == mpawn && !pins.test(orig)) {
@@ -454,7 +446,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
     // blockers if slider
 
     if (is_slider(pos[checker1])) {
-        for (int sq = king + inc1; sq != checker1; sq += inc1) {
+        for (int sq = king + incr1; sq != checker1; sq += incr1) {
             gen_pawn_moves(moves, pos, sq, pins);
             gen_piece_moves(moves, pos, sq, pins);
         }
@@ -700,14 +692,6 @@ u8 pseudo_attack(int incr)
     assert(incr >= -DeltaOffset && incr < DeltaOffset);
 
     return DeltaTypeLUT[DeltaOffset + incr];
-}
-
-bool pseudo_attack(int orig, int dest)
-{
-    assert(sq88_is_ok(orig));
-    assert(sq88_is_ok(dest));
-
-    return DeltaTypeLUT[DeltaOffset + dest - orig];
 }
 
 bool pseudo_attack(int orig, int dest, u8 piece)

@@ -47,7 +47,7 @@ public:
 
     bool ep_is_valid(int sq) const;
 
-    bool move_is_legal(const Move& move) const;
+    bool move_is_legal   (const Move& move) const;
     bool move_is_legal_ep(const Move& move) const;
 
     bool move_is_irreversible(const Move& move) const;
@@ -139,8 +139,17 @@ public:
     
     std::string dump() const;
 
-    int checkers()      const { return checkers_count_; }
-    int checkers(int i) const { return checkers_sq_[i]; }
+    int checkers() const
+    {
+        return checkers_count_;
+    }
+
+    int checkers(int i) const
+    { 
+        assert(i >= 0 && i < checkers_count_);
+
+        return checkers_sq_[i];
+    }
 
     u8 pawn_file(int side, int file) const
     {
@@ -166,9 +175,9 @@ private:
 
         return square_[36 + sq];
     }
-    
-    //u8 square_[16 * 12];
-    std::array<u8, 16 * 12> square_;
+   
+    u8 square_[16 * 12];
+
     u8 pawn_file_[2][10];
 
     int side_ = -1;
@@ -182,8 +191,7 @@ private:
 
     u64 key_ = 0;
 
-    //PieceList piece_list_[12];
-    std::array<PieceList, 12> piece_list_;
+    PieceList piece_list_[12];
 };
 
 #endif

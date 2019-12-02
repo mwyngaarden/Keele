@@ -1,0 +1,278 @@
+diff --git a/gen.cpp b/gen.cpp
+index 51529cf..fa7f0c7 100644
+--- a/gen.cpp
++++ b/gen.cpp
+@@ -220,11 +220,11 @@ void gen_knight_moves(MoveList& moves, const Position& pos, const int orig)
+     for (auto incr : KnightIncrs) {
+         const int dest = orig + incr;
+         
+-        //if (!sq88_is_ok(dest)) continue;
++        if (!sq88_is_ok(dest)) continue;
+ 
+         const u8 piece = pos[dest];
+ 
+-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
++        if ((piece & mflag) == 0)
+             moves.add(Move(orig, dest, piece));
+     }
+ }
+@@ -304,11 +304,11 @@ void gen_king_moves(MoveList& moves, const Position& pos, const bool castle)
+     for (auto incr : QueenIncrs) {
+         const int dest = king + incr;
+         
+-        //if (!sq88_is_ok(dest)) continue;
++        if (!sq88_is_ok(dest)) continue;
+ 
+         const u8 piece = pos[dest];
+ 
+-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
++        if ((piece & mflag) == 0)
+             if (!GenerateLegal || !pos.side_attacks(oside, dest))
+                 moves.add(Move(king, dest, piece));
+     }
+@@ -346,15 +346,13 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
+ {
+     const int king = pos.king_sq();
+ 
+-    const int checkers_count = pos.checkers();
+-
+-    assert(checkers_count > 0);
++    assert(pos.checkers() > 0);
+ 
+     const int checker1 =                      pos.checkers(0);
+-    const int checker2 = checkers_count > 1 ? pos.checkers(1) : SquareNone;
++    const int checker2 = pos.checkers() > 1 ? pos.checkers(1) : SquareNone;
+ 
+-    const int inc1 =                           is_slider(pos[checker1]) ? delta_incr(king, checker1) : 0;
+-    const int inc2 = checker2 != SquareNone && is_slider(pos[checker2]) ? delta_incr(king, checker2) : 0;
++    const int incr1 =                           is_slider(pos[checker1]) ? delta_incr(king, checker1) : 0;
++    const int incr2 = checker2 != SquareNone && is_slider(pos[checker2]) ? delta_incr(king, checker2) : 0;
+     
+     const int mside = pos.side();
+     const int oside = flip_side(pos.side());
+@@ -362,21 +360,21 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
+     const u8 mflag = make_flag(mside);
+ 
+     for (auto incr : QueenIncrs) {
+-        if (incr == -inc1 || incr == -inc2)
++        if (incr == -incr1 || incr == -incr2)
+             continue;
+ 
+         const int dest = king + incr;
+ 
+-        //if (!sq88_is_ok(dest)) continue;
++        if (!sq88_is_ok(dest)) continue;
+ 
+         const u8 piece = pos[dest];
+ 
+-        if (piece != PieceInvalid256 && (piece & mflag) == 0)
++        if ((piece & mflag) == 0)
+             if (!pos.side_attacks(oside, dest))
+                 moves.add(Move(king, dest, piece));
+     }
+ 
+-    if (checkers_count == 2)
++    if (pos.checkers() == 2)
+         return moves.size();
+ 
+     BitSet pins;
+@@ -392,17 +390,11 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
+     // pawn captures checking piece
+ 
+     if (checker1 == ep_dual(pos.ep_sq())) {
+-        int pawn = checker1;
+-
+-        pawn -= 1;
+-
+-        if (pos[pawn] == mpawn && !pins.test(pawn))
+-            moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
++        if (int orig = checker1 - 1; pos[orig] == mpawn && !pins.test(orig))
++            moves.add(Move(orig, pos.ep_sq(), opawn) | Move::EPFlag);
+         
+-        pawn += 2;
+-        
+-        if (pos[pawn] == mpawn && !pins.test(pawn))
+-            moves.add(Move(pawn, pos.ep_sq(), opawn) | Move::EPFlag);
++        if (int orig = checker1 + 1; pos[orig] == mpawn && !pins.test(orig))
++            moves.add(Move(orig, pos.ep_sq(), opawn) | Move::EPFlag);
+     }
+ 
+     if (int orig = checker1 - incr - 1; pos[orig] == mpawn && !pins.test(orig)) {
+@@ -454,7 +446,7 @@ size_t gen_evasion_moves(MoveList& moves, const Position& pos)
+     // blockers if slider
+ 
+     if (is_slider(pos[checker1])) {
+-        for (int sq = king + inc1; sq != checker1; sq += inc1) {
++        for (int sq = king + incr1; sq != checker1; sq += incr1) {
+             gen_pawn_moves(moves, pos, sq, pins);
+             gen_piece_moves(moves, pos, sq, pins);
+         }
+@@ -702,14 +694,6 @@ u8 pseudo_attack(int incr)
+     return DeltaTypeLUT[DeltaOffset + incr];
+ }
+ 
+-bool pseudo_attack(int orig, int dest)
+-{
+-    assert(sq88_is_ok(orig));
+-    assert(sq88_is_ok(dest));
+-
+-    return DeltaTypeLUT[DeltaOffset + dest - orig];
+-}
+-
+ bool pseudo_attack(int orig, int dest, u8 piece)
+ {
+     assert(sq88_is_ok(orig));
+diff --git a/gen.h b/gen.h
+index dbe6b8b..87afdd2 100644
+--- a/gen.h
++++ b/gen.h
+@@ -20,8 +20,7 @@ std::size_t gen_evasion_moves   (MoveList& moves, const Position& pos);
+ 
+ int delta_incr      (int orig, int dest);
+ 
+-u8  pseudo_attack   (int incr);
+-bool pseudo_attack  (int orig, int dest);
++u8   pseudo_attack  (int incr);
+ bool pseudo_attack  (int orig, int dest, u8 piece);
+ 
+ int castle_flag(int sq);
+diff --git a/perft.cpp b/perft.cpp
+index 7f28e19..1fac465 100644
+--- a/perft.cpp
++++ b/perft.cpp
+@@ -68,6 +68,8 @@ string move_to_string(const Move& move)
+             
+ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos)
+ {
++    constexpr double alpha = 2.0 / 3.0;
++
+     i64 nodes = 0;
+ 
+     double rcum_mnps = 0;
+@@ -95,12 +97,12 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
+ 
+         auto microseconds = chrono::duration_cast<chrono::microseconds>(t1 - t0);
+ 
+-        double secs = microseconds.count() / 1000000.0;
++        double secs = microseconds.count() / 1e+6;
+         
+         i64 cycles = rdtsc1 - rdtsc0;
+ 
+-        int cpn = int(double(cycles) / double(have_nodes) + 0.5);
+-        int mnps = int(double(have_nodes) / secs / 1000000.0 + 0.5);
++        double cpn = double(cycles) / double(have_nodes);
++        double mnps = double(have_nodes) / secs / 1e+6;
+ 
+         total_microseconds += microseconds.count();
+         total_cycles += cycles;
+@@ -111,34 +113,31 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
+ 
+         nodes += have_nodes;
+         
+-        double cum_mnps = int(double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6 + 0.5);
++        double cum_mnps = double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6;
+ 
+-        rcum_mnps = i == 0 ? cum_mnps : (4.0/5.0) * rcum_mnps + (1.0/5.0) * cum_mnps;
++        if (i == 0)
++            rcum_mnps = cum_mnps;
++        else
++            rcum_mnps = alpha * rcum_mnps + (1.0 - alpha) * cum_mnps;
+ 
+         if ((i + 1) % 100 == 0) {
+-            cout << "n = "      << setw(4) << (i + 1)               << ' '
+-                 << "d = "      << setw(1) << depth                 << ' '
+-                 //<< "wn = "     << want_nodes       << ' '
+-                 //<< "hn = "     << have_nodes       << ' '
+-                 << "dn = "     << setw(1) << diff_nodes            << ' '
+-                 << "inv = "    << setw(1) << invalid               << ' '
+-                 << "cpn = "    << setw(4) << cpn                   << ' '
+-                 << "mnps = "   << setw(3) << mnps                  << ' '
+-                 << "cmnps = "  << setw(3) << int(rcum_mnps + 0.5)  << ' ';
+-
+-            cout << (diff_nodes == 0 ? "PASS" : "FAIL") << endl;
++            stringstream ss;
++
++            ss  << setprecision(1) << fixed 
++                << "n = "      << setw(4) << (i + 1)            << ' '
++                << "d = "      << setw(1) << depth              << ' '
++                //<< "wn = "     << want_nodes       << ' '
++                //<< "hn = "     << have_nodes       << ' '
++                << "dn = "     << setw(1) << diff_nodes         << ' '
++                << "inv = "    << setw(1) << invalid            << ' '
++                << "cpn = "    << setw(5) << cpn                << ' '
++                << "rcmnps = " << setw(5) << rcum_mnps          << ' '
++                << "tcmnps = " << setw(5) << cum_mnps           << ' '
++                << (diff_nodes == 0 ? "PASS" : "FAIL");
++
++            cout << ss.str() << endl;
+         }
+ 
+-        /*
+-        cout << "\twant nodes: " << want_nodes               << endl;
+-        cout << "\thave nodes: " << have_nodes               << endl;
+-        cout << "\tdiff nodes: " << have_nodes - want_nodes;
+-
+-        if (want_nodes != have_nodes) cout << " !!!!!!!!!!!!!!!!";
+-
+-        cout << endl;
+-        */
+-
+         if (startpos) break;
+     }
+ 
+diff --git a/pos.h b/pos.h
+index deefe0b..c76fa17 100644
+--- a/pos.h
++++ b/pos.h
+@@ -47,7 +47,7 @@ public:
+ 
+     bool ep_is_valid(int sq) const;
+ 
+-    bool move_is_legal(const Move& move) const;
++    bool move_is_legal   (const Move& move) const;
+     bool move_is_legal_ep(const Move& move) const;
+ 
+     bool move_is_irreversible(const Move& move) const;
+@@ -139,8 +139,17 @@ public:
+     
+     std::string dump() const;
+ 
+-    int checkers()      const { return checkers_count_; }
+-    int checkers(int i) const { return checkers_sq_[i]; }
++    int checkers() const
++    {
++        return checkers_count_;
++    }
++
++    int checkers(int i) const
++    { 
++        assert(i >= 0 && i < checkers_count_);
++
++        return checkers_sq_[i];
++    }
+ 
+     u8 pawn_file(int side, int file) const
+     {
+@@ -166,9 +175,9 @@ private:
+ 
+         return square_[36 + sq];
+     }
+-    
+-    //u8 square_[16 * 12];
+-    std::array<u8, 16 * 12> square_;
++   
++    u8 square_[16 * 12];
++
+     u8 pawn_file_[2][10];
+ 
+     int side_ = -1;
+@@ -182,8 +191,7 @@ private:
+ 
+     u64 key_ = 0;
+ 
+-    //PieceList piece_list_[12];
+-    std::array<PieceList, 12> piece_list_;
++    PieceList piece_list_[12];
+ };
+ 
+ #endif

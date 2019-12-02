@@ -68,6 +68,8 @@ string move_to_string(const Move& move)
             
 i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos)
 {
+    constexpr double alpha = 2.0 / 3.0;
+
     i64 nodes = 0;
 
     double rcum_mnps = 0;
@@ -95,12 +97,12 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
 
         auto microseconds = chrono::duration_cast<chrono::microseconds>(t1 - t0);
 
-        double secs = microseconds.count() / 1000000.0;
+        double secs = microseconds.count() / 1e+6;
         
         i64 cycles = rdtsc1 - rdtsc0;
 
-        int cpn = int(double(cycles) / double(have_nodes) + 0.5);
-        int mnps = int(double(have_nodes) / secs / 1000000.0 + 0.5);
+        double cpn = double(cycles) / double(have_nodes);
+        double mnps = double(have_nodes) / secs / 1e+6;
 
         total_microseconds += microseconds.count();
         total_cycles += cycles;
@@ -111,33 +113,30 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
 
         nodes += have_nodes;
         
-        double cum_mnps = int(double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6 + 0.5);
+        double cum_mnps = double(nodes) / (double(total_microseconds) / 1e+6) / 1e+6;
 
-        rcum_mnps = i == 0 ? cum_mnps : (4.0/5.0) * rcum_mnps + (1.0/5.0) * cum_mnps;
+        if (i == 0)
+            rcum_mnps = cum_mnps;
+        else
+            rcum_mnps = alpha * rcum_mnps + (1.0 - alpha) * cum_mnps;
 
         if ((i + 1) % 100 == 0) {
-            cout << "n = "      << setw(4) << (i + 1)               << ' '
-                 << "d = "      << setw(1) << depth                 << ' '
-                 //<< "wn = "     << want_nodes       << ' '
-                 //<< "hn = "     << have_nodes       << ' '
-                 << "dn = "     << setw(1) << diff_nodes            << ' '
-                 << "inv = "    << setw(1) << invalid               << ' '
-                 << "cpn = "    << setw(4) << cpn                   << ' '
-                 << "mnps = "   << setw(3) << mnps                  << ' '
-                 << "cmnps = "  << setw(3) << int(rcum_mnps + 0.5)  << ' ';
+            stringstream ss;
 
-            cout << (diff_nodes == 0 ? "PASS" : "FAIL") << endl;
+            ss  << setprecision(1) << fixed 
+                << "n = "      << setw(4) << (i + 1)            << ' '
+                << "d = "      << setw(1) << depth              << ' '
+                //<< "wn = "     << want_nodes       << ' '
+                //<< "hn = "     << have_nodes       << ' '
+                << "dn = "     << setw(1) << diff_nodes         << ' '
+                << "inv = "    << setw(1) << invalid            << ' '
+                << "cpn = "    << setw(5) << cpn                << ' '
+                << "rcmnps = " << setw(5) << rcum_mnps          << ' '
+                << "tcmnps = " << setw(5) << cum_mnps           << ' '
+                << (diff_nodes == 0 ? "PASS" : "FAIL");
+
+            cout << ss.str() << endl;
         }
-
-        /*
-        cout << "\twant nodes: " << want_nodes               << endl;
-        cout << "\thave nodes: " << have_nodes               << endl;
-        cout << "\tdiff nodes: " << have_nodes - want_nodes;
-
-        if (want_nodes != have_nodes) cout << " !!!!!!!!!!!!!!!!";
-
-        cout << endl;
-        */
 
         if (startpos) break;
     }
