@@ -1,6 +1,6 @@
 change from returning and operation as bool to use != 
 
-reduce calls to side_attacks!!
-
-dont do side_attacks on non-evasion king moves
-add to move_is_legal if (Debug) copy position, make king move, assert on side_attacks
+side_attacks
+    
+    reduce calls to
+    

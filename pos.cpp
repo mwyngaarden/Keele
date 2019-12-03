@@ -770,13 +770,11 @@ bool Position::empty(int orig, int dest) const
 
     const int incr = delta_incr(orig, dest);
 
-    int sq = orig;
-
     do {
-        sq += incr;
+        orig += incr;
 
-        if (sq == dest) return true;
-    } while (square(sq) == PieceNone256);
+        if (orig == dest) return true;
+    } while (square(orig) == PieceNone256);
 
     return false;
 }
