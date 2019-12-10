@@ -159,7 +159,7 @@ public:
     }
 
 private:
-    void add_piece(int sq, u8 piece256, bool update = false);
+    void add_piece(int sq, u8 piece, bool update = false);
     void rem_piece(int sq, bool update = false);
     void mov_piece(int orig, int dest, bool update = false);
 

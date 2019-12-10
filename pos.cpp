@@ -130,9 +130,9 @@ string Position::to_fen() const
         int empty = 0;
 
         for (int file = 0; file < 8; file++) {
-            u8 piece256 = square(to_sq88(file, rank));
+            u8 piece = square(to_sq88(file, rank));
 
-            if (piece256 == PieceNone256)
+            if (piece == PieceNone256)
                 empty++;
             else {
                 if (empty > 0) {
@@ -140,7 +140,7 @@ string Position::to_fen() const
                     empty = 0;
                 }
 
-                oss << piece256_to_char(piece256);
+                oss << piece256_to_char(piece);
             }
         }
 
@@ -198,7 +198,7 @@ void Position::make_move(const Move& move, Undo& undo)
     const int orig = move.orig();
     const int dest = move.dest();
 
-    const int piece256 = square(orig);
+    const int piece = square(orig);
         
     const int incr = pawn_incr(side_);
 
@@ -229,7 +229,7 @@ void Position::make_move(const Move& move, Undo& undo)
        
     flags_ &= castle_flag(orig) & castle_flag(dest);
     ep_sq_ = move.is_double() && ep_is_valid(ep_dual(dest)) ? ep_dual(dest) : SquareNone;
-    half_moves_  = is_pawn(piece256) || move.is_capture() ? 0 : half_moves_ + 1;
+    half_moves_  = is_pawn(piece) || move.is_capture() ? 0 : half_moves_ + 1;
     full_moves_ += side_;
     
     side_ = flip_side(side_);
@@ -311,12 +311,12 @@ int Position::is_ok(bool check_test) const
                 if (!sq88_is_ok(sq))
                     return __LINE__;
 
-                u8 piece256 = to_piece256(side, piece);
+                u8 piece = to_piece256(side, piece);
 
-                if (!piece256_is_ok(piece256))
+                if (!piece256_is_ok(piece))
                     return __LINE__;
                 
-                if (square(sq) != piece256)
+                if (square(sq) != piece)
                     return __LINE__;
 
                 sq_count[sq]++;
@@ -367,19 +367,19 @@ int Position::is_ok(bool check_test) const
     return 0;
 }
 
-void Position::add_piece(int sq, u8 piece256, bool update)
+void Position::add_piece(int sq, u8 piece, bool update)
 {
     assert(sq88_is_ok(sq));
     assert(empty(sq));
-    assert(piece256_is_ok(piece256));
+    assert(piece256_is_ok(piece));
 
-    const int p12 = P256ToP12[piece256];
+    const int p12 = P256ToP12[piece];
 
     assert(piece12_is_ok(p12));
 
     piece_list_[p12].add(sq);
 
-    if (false && is_pawn(piece256)) {
+    if (false && is_pawn(piece)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -391,7 +391,7 @@ void Position::add_piece(int sq, u8 piece256, bool update)
     if (update)
         key_ ^= hash_piece(p12, sq);
 
-    square(sq) = piece256;
+    square(sq) = piece;
 }
 
 void Position::rem_piece(int sq, bool update)
@@ -399,17 +399,17 @@ void Position::rem_piece(int sq, bool update)
     assert(sq88_is_ok(sq));
     assert(!empty(sq));
 
-    const u8 piece256 = square(sq);
+    const u8 piece = square(sq);
     
-    assert(piece256_is_ok(piece256));
+    assert(piece256_is_ok(piece));
 
-    const int p12 = P256ToP12[piece256];
+    const int p12 = P256ToP12[piece];
     
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].remove(sq);
     
-    if (false && is_pawn(piece256)) {
+    if (false && is_pawn(piece)) {
         const int file = sq88_file(sq);
         const int rank = sq88_rank(sq);
 
@@ -431,17 +431,17 @@ void Position::mov_piece(int orig, int dest, bool update)
     assert(!empty(orig));
     assert(empty(dest));
 
-    const u8 piece256 = square(orig);
+    const u8 piece = square(orig);
 
-    assert(piece256_is_ok(piece256));
+    assert(piece256_is_ok(piece));
 
-    const int p12 = P256ToP12[piece256];
+    const int p12 = P256ToP12[piece];
 
     assert(piece12_is_ok(p12));
     
     piece_list_[p12].replace(orig, dest);
     
-    if (false && is_pawn(piece256)) {
+    if (false && is_pawn(piece)) {
         const int ofile = sq88_file(orig);
         const int orank = sq88_rank(orig);
         const int dfile = sq88_file(dest);
@@ -514,14 +514,14 @@ bool Position::piece_attacks(int orig, int dest) const
     assert(sq88_is_ok(dest));
     assert(!empty(orig));
 
-    const u8 piece256 = square(orig);
+    const u8 piece = square(orig);
 
-    assert(piece256_is_ok(piece256));
+    assert(piece256_is_ok(piece));
 
-    if (!pseudo_attack(orig, dest, piece256))
+    if (!pseudo_attack(orig, dest, piece))
         return false;
 
-    return !is_slider(piece256) || empty(orig, dest);
+    return !is_slider(piece) || empty(orig, dest);
 }
 
 string Position::dump() const
@@ -540,12 +540,12 @@ string Position::dump() const
         oss << ' ' << (rank + 1) << "  |";
 
         for (int file = 0; file <= 7; file++) { 
-            const u8 piece256 = square(to_sq88(file, rank));
+            const u8 piece = square(to_sq88(file, rank));
 
-            if (is_white(piece256))
-                oss << '-' << (char)        piece256_to_char(piece256)  << '-';
-            else if (is_black(piece256))
-                oss << '<' << (char)toupper(piece256_to_char(piece256)) << '>';
+            if (is_white(piece))
+                oss << '-' << (char)        piece256_to_char(piece)  << '-';
+            else if (is_black(piece))
+                oss << '<' << (char)toupper(piece256_to_char(piece)) << '>';
             else  {
                 const int dark = ~(file ^ rank) & 1;
 
@@ -573,14 +573,14 @@ u64 Position::calc_key() const
     for (int i = 0; i < 64; i++) {
         int sq = to_sq88(i);
 
-        u8 piece256 = square(sq);
+        u8 piece = square(sq);
 
-        if (piece256 == PieceNone256)
+        if (piece == PieceNone256)
             continue;
 
-        assert(piece256_is_ok(piece256));
+        assert(piece256_is_ok(piece));
 
-        int p12 = P256ToP12[piece256];
+        int p12 = P256ToP12[piece];
 
         assert(piece12_is_ok(p12));
 
@@ -619,7 +619,7 @@ void Position::mark_pins(BitSet& pins) const
 
     const u8 mflag = make_flag(mside);
 
-    u8 piece256;
+    u8 piece;
 
     int sq1;
     int sq2;
@@ -629,8 +629,8 @@ void Position::mark_pins(BitSet& pins) const
         if (!pseudo_attack(orig, king, BishopFlag256)) continue;
         incr = delta_incr(king, orig);
         sq1 = king + incr;
-        while ((piece256 = square(sq1)) == PieceNone256) sq1 += incr;
-        if ((piece256 & mflag) == 0) continue;
+        while ((piece = square(sq1)) == PieceNone256) sq1 += incr;
+        if ((piece & mflag) == 0) continue;
         sq2 = orig - incr;
         while (square(sq2) == PieceNone256) sq2 -= incr;
         if (sq1 == sq2) pins.set(sq1);
@@ -640,8 +640,8 @@ void Position::mark_pins(BitSet& pins) const
         if (!pseudo_attack(orig, king, RookFlag256)) continue;
         incr = delta_incr(king, orig);
         sq1 = king + incr;
-        while ((piece256 = square(sq1)) == PieceNone256) sq1 += incr;
-        if ((piece256 & mflag) == 0) continue;
+        while ((piece = square(sq1)) == PieceNone256) sq1 += incr;
+        if ((piece & mflag) == 0) continue;
         sq2 = orig - incr;
         while (square(sq2) == PieceNone256) sq2 -= incr;
         if (sq1 == sq2) pins.set(sq1);
@@ -651,8 +651,8 @@ void Position::mark_pins(BitSet& pins) const
         if (!pseudo_attack(orig, king, QueenFlags256)) continue;
         incr = delta_incr(king, orig);
         sq1 = king + incr;
-        while ((piece256 = square(sq1)) == PieceNone256) sq1 += incr;
-        if ((piece256 & mflag) == 0) continue;
+        while ((piece = square(sq1)) == PieceNone256) sq1 += incr;
+        if ((piece & mflag) == 0) continue;
         sq2 = orig - incr;
         while (square(sq2) == PieceNone256) sq2 -= incr;
         if (sq1 == sq2) pins.set(sq1);
@@ -728,7 +728,7 @@ void Position::set_checkers_fast(const Move& move)
     const int oincr = delta_incr(king, orig);
     const int dincr = delta_incr(king, dest);
 
-    u8 piece256;
+    u8 piece;
 
     // revealed check?
 
@@ -736,19 +736,19 @@ void Position::set_checkers_fast(const Move& move)
         if (pseudo_attack(oincr) & QueenFlags256) {
             sq = king + oincr;
 
-            while ((piece256 = square(sq)) == PieceNone256) sq += oincr;
+            while ((piece = square(sq)) == PieceNone256) sq += oincr;
 
-            if ((piece256 & oflag) && pseudo_attack(sq, king, piece256))
+            if ((piece & oflag) && pseudo_attack(sq, king, piece))
                 checkers_sq_[checkers_count_++] = sq;
         }
     }
 
     // direct check?
 
-    piece256 = square(dest);
+    piece = square(dest);
 
-    if (pseudo_attack(dest, king, piece256)) {
-        if (is_slider(piece256)) {
+    if (pseudo_attack(dest, king, piece)) {
+        if (is_slider(piece)) {
             sq = king + dincr;
             
             while (square(sq) == PieceNone256) sq += dincr;
@@ -822,11 +822,11 @@ bool Position::move_is_legal(const Move& move) const
 
     int sq = orig;
     
-    u8 piece256;
+    u8 piece;
 
-    do { sq += pincr; } while ((piece256 = square(sq)) == PieceNone256);
+    do { sq += pincr; } while ((piece = square(sq)) == PieceNone256);
 
-    if ((piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256))
+    if ((piece & oflag) == 0 || !pseudo_attack(king, sq, piece))
         return true;
 
     return false;
@@ -860,7 +860,7 @@ bool Position::move_is_legal_ep(const Move& move) const
 
     assert(abs(mincr) == 15 || abs(mincr) == 17);
     
-    u8 piece256;
+    u8 piece;
 
     //  king on same rank of capturing and captured pawn?
 
@@ -871,11 +871,11 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         // skip both pawns on rank
 
-        do { sq += oincr; } while (sq == orig || sq == cap || (piece256 = square(sq)) == PieceNone256);
+        do { sq += oincr; } while (sq == orig || sq == cap || (piece = square(sq)) == PieceNone256);
 
         // revealed checks not possible on any file or diagonal
 
-        return (piece256 & oflag) == 0 || !pseudo_attack(king, sq, piece256);
+        return (piece & oflag) == 0 || !pseudo_attack(king, sq, piece);
     }
 
     // king on same diagonal of capturing pawn?
@@ -892,9 +892,9 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         int sq = orig;
 
-        do { sq += oincr; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += oincr; } while ((piece = square(sq)) == PieceNone256);
 
-        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+        if ((piece & oflag) && (piece & BishopFlag256))
             return false;
     }
     
@@ -906,9 +906,9 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         int sq = cap;
 
-        do { sq += cincr; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += cincr; } while ((piece = square(sq)) == PieceNone256);
 
-        if ((piece256 & oflag) && (piece256 & BishopFlag256))
+        if ((piece & oflag) && (piece & BishopFlag256))
             return false;
     }
 
@@ -925,9 +925,9 @@ bool Position::move_is_legal_ep(const Move& move) const
 
         int sq = orig;
 
-        do { sq += oincr; } while ((piece256 = square(sq)) == PieceNone256);
+        do { sq += oincr; } while ((piece = square(sq)) == PieceNone256);
 
-        if ((piece256 & oflag) && (piece256 & RookFlag256))
+        if ((piece & oflag) && (piece & RookFlag256))
             return false;
     }
 
