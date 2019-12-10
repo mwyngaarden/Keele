@@ -20,7 +20,6 @@ constexpr bool Debug = false;
 
 using BitSet = std::bitset<128>;
 
-
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -35,7 +34,12 @@ typedef int64_t i64;
 constexpr int PliesMax = 128;
 constexpr int MovesMax = 256;
 
-constexpr int ValueDraw = 0;
+// TODO: types for Score and Value
+
+
+// eval
+
+constexpr int ValueDraw =     0;
 constexpr int ValueMate = 32000;
 constexpr int ValueInf  = 32001;
 constexpr int ValueNone = 32002;
@@ -43,9 +47,17 @@ constexpr int ValueNone = 32002;
 constexpr int ValueMateInPliesMax  =  ValueMate - PliesMax;
 constexpr int ValueMatedInPliesMax = -ValueMate + PliesMax;
 
+constexpr int ValuePawn   =  100;
+constexpr int ValueKnight =  400;
+constexpr int ValueBishop =  425;
+constexpr int ValueRook   =  650;
+constexpr int ValueQueen  = 1250;
+
+// tt
+
 constexpr int BoundNone  = 0;
 constexpr int BoundUpper = 1;
 constexpr int BoundLower = 2;
-constexpr int BoundExact = 3;
+constexpr int BoundExact = BoundUpper | BoundLower;
 
 #endif

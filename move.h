@@ -89,4 +89,7 @@ struct Undo {
     
 using MoveList = Util::List<Move, 256>;
 
+const Move MoveNone(0, 0);
+const Move MoveNull(1, 1);
+
 #endif
