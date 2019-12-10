@@ -1,7 +1,10 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
+#include <vector>
+#include "move.h"
 #include "pos.h"
+#include "types.h"
 
 class SearchContext {
 public:
@@ -26,8 +29,36 @@ private:
     i64 nodes_countdown_ = NodesCountdownCycle;
 };
 
+struct SearchStack {
+    Move* pv;
+
+    int ply;
+
+    Move curr_move;
+    Move excl_move;
+
+    Move killers[2];
+
+    int static_eval;
+
+    int move_count;
+};
+
+struct RootMove {
+    int curr_score = -ValueInf;
+    int prev_score = -ValueInf;
+
+    int sel_depth = 0;
+
+    int best_move_count = 0;
+
+    std::vector<Move> pv;
+};
+
 void search_init();
 
 void search_root(SearchContext &ctx, Position& pos);
+
+int search(bool pv_node, Position& pos, SearchStack* ss, int alpha, int beta, int depth, bool cut_node);
 
 #endif
