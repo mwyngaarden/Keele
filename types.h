@@ -8,7 +8,7 @@
 
 constexpr bool GenerateLegal = true;
 
-constexpr bool UpdateInfo = false;
+constexpr bool UpdateInfo = true;
 
 
 #ifndef NDEBUG

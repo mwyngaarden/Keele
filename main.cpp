@@ -10,6 +10,7 @@
 #include "search.h"
 #include "square.h"
 #include "types.h"
+#include "uci.h"
 using namespace std;
 
 struct Pos {
@@ -44,6 +45,10 @@ void validate_hash()
 
 int main(int argc, char *argv[])
 {
+    setvbuf(stdin, nullptr, _IONBF, 0);
+    setvbuf(stdout, nullptr, _IONBF, 0);
+
+    uci_init();
     piece_init();
     gen_init();
     hash_init();
