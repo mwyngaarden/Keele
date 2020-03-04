@@ -1,6 +1,14 @@
-change from returning and operation as bool to use != 
+Aim...
+    UCI compatible chess engine
+    using features from latest C++ revisions (17/2x)
 
-side_attacks
-    
-    reduce calls to
+Current state...
+    move generator is complete with validating methods
+    UCI compatibility is absent
+    search is nonexistent
+
+TODO...
+    UCI
+    search
+    reduce calls to side_attacks
     
