@@ -311,12 +311,12 @@ int Position::is_ok(bool check_test) const
                 if (!sq88_is_ok(sq))
                     return __LINE__;
 
-                u8 piece = to_piece256(side, piece);
+                u8 p256 = to_piece256(side, piece);
 
-                if (!piece256_is_ok(piece))
+                if (!piece256_is_ok(p256))
                     return __LINE__;
                 
-                if (square(sq) != piece)
+                if (square(sq) != p256)
                     return __LINE__;
 
                 sq_count[sq]++;

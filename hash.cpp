@@ -248,10 +248,11 @@ u64 hash_piece(int piece, int sq)
 
     assert(sq64_is_ok(sq64));
     
-    // modified to match polyglot
-    //int index = 64 * (piece ^ 1) + sq64;
-    
-    int index = 64 * piece + sq64;
+    // polyglot
+    int index = 64 * (piece ^ 1) + sq64;
+   
+    // original
+    // int index = 64 * piece + sq64;
 
     return random64[HashPieceIndex + index];
 }
