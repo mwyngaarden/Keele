@@ -4,6 +4,9 @@
 #include <cassert>
 #include <cstdint>
 
+#define KEELE_VERSION "1.0"
+#define KEELE_AUTHOR "Martin Wyngaarden"
+
 namespace Util {
 
     template <typename T, std::size_t N>

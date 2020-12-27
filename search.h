@@ -2,9 +2,9 @@
 #define SEARCH_H
 
 #include <vector>
-#include "move.h"
-#include "pos.h"
 #include "types.h"
+#include "pos.h"
+#include "move.h"
 
 class SearchContext {
 public:
@@ -57,8 +57,8 @@ struct RootMove {
 
 void search_init();
 
-void search_root(SearchContext &ctx, Position& pos);
+//void search_root(SearchContext &ctx, Position& pos);
 
-int search(bool pv_node, Position& pos, SearchStack* ss, int alpha, int beta, int depth, bool cut_node);
+//int search(bool pv_node, Position& pos, SearchStack* ss, int alpha, int beta, int depth, bool cut_node);
 
 #endif

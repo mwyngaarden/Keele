@@ -1,6 +1,7 @@
 #include <array>
 #include <bitset>
 #include <iostream>
+#include <thread>
 #include <vector>
 #include <cstdlib>
 #include "gen.h"
@@ -9,6 +10,7 @@
 #include "pos.h"
 #include "search.h"
 #include "square.h"
+#include "string.h"
 #include "types.h"
 #include "uci.h"
 using namespace std;
@@ -45,21 +47,54 @@ void validate_hash()
 
 int main(int argc, char *argv[])
 {
-    setvbuf(stdin, nullptr, _IONBF, 0);
-    setvbuf(stdout, nullptr, _IONBF, 0);
+	/*
+    string s1 = "\t\nHello,    World!\t";
+    string s2 = "\n\nHello,  World!\r\n\v";
+    string s3 = "\tHello,\t\n\r\v World!\t";
 
-    uci_init();
-    piece_init();
-    gen_init();
-    hash_init();
+    cout << "s1(" << s1 << ")" << endl;
+    cout << "s2(" << s2 << ")" << endl;
+    cout << "s3(" << s3 << ")" << endl;
 
-    if (argc == 1) {
-        validate_hash();
+    cout << "s1(" << TrimBegin(s1) << ")" << endl;
+    cout << "s2(" << TrimBegin(s2) << ")" << endl;
+    cout << "s3(" << TrimBegin(s3) << ")" << endl;
 
-        return EXIT_SUCCESS;
-    }
+    cout << "s1(" << TrimEnd(s1) << ")" << endl;
+    cout << "s2(" << TrimEnd(s2) << ")" << endl;
+    cout << "s3(" << TrimEnd(s3) << ")" << endl;
 
-    assert(argc >= 2);
+    cout << "s1(" << Trim(s1) << ")" << endl;
+    cout << "s2(" << Trim(s2) << ")" << endl;
+    cout << "s3(" << Trim(s3) << ")" << endl;
+
+    return EXIT_SUCCESS;
+	*/
+
+    //setvbuf(stdin, nullptr, _IONBF, 0);
+    //setvbuf(stdout, nullptr, _IONBF, 0);
+
+
+	if (argc == 1) {
+		uci_init();
+		piece_init();
+		gen_init();
+		hash_init();
+		
+		thread search_thread(search_init);
+
+		uci_loop();
+
+		search_thread.join();
+
+		return EXIT_SUCCESS;
+	}
+    
+	assert(argc >= 2);
+        
+	cerr << "Calling validate_hash..." << endl;
+	validate_hash();
+	cerr << "Calling validate_hash... done" << endl;
 
     int depth = stoi(argv[1]); 
     bool startpos = argc == 3;

@@ -17,6 +17,11 @@ private:
     std::vector<std::string> tokens_;
 };
 
+std::string Trim        (std::string s);
+std::string TrimBegin   (std::string s);
+std::string TrimEnd     (std::string s);
+std::string Sanitize    (std::string s);
+
 /*
 template <std::size_t N, std::size_t L>
 class Tokenizer {

@@ -6,12 +6,12 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
+#include "types.h"
 #include "gen.h"
 #include "hash.h"
 #include "move.h"
 #include "piece.h"
 #include "square.h"
-#include "types.h"
 #include "util.h"
 
 class Position {

@@ -1,10 +1,12 @@
 #ifndef GEN_H
 #define GEN_H
 
+#include "types.h"
+#include "pos.h"
 #include "move.h"
 #include "piece.h"
-#include "pos.h"
-#include "types.h"
+
+class Position;
 
 constexpr int KnightIncrs[8] = { -33, -31, -18, -14,  14,  18,  31,  33 };
 constexpr int BishopIncrs[4] = { -17, -15,  15,  17 };

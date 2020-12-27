@@ -20,7 +20,7 @@ RCOMPILE_FLAGS = -Ofast -flto -march=native -DNDEBUG -fno-exceptions -fno-rtti
 DCOMPILE_FLAGS = -g -ggdb3 -O0
 
 # General linker settings
-LINK_FLAGS =
+LINK_FLAGS = -pthread
 # Additional release-specific linker settings
 RLINK_FLAGS =
 # Additional debug-specific linker settings
