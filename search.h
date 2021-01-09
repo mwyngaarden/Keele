@@ -1,10 +1,15 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
+#include <mutex>
+#include <thread>
 #include <vector>
 #include "types.h"
 #include "pos.h"
 #include "move.h"
+
+extern std::thread search_thread;
+extern std::mutex search_mutex;
 
 class SearchContext {
 public:

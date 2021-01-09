@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 
 #define KEELE_VERSION "1.0"
 #define KEELE_AUTHOR "Martin Wyngaarden"
@@ -23,6 +24,11 @@ namespace Util {
 
         void add(T& value)
         {
+			// FIXME TODO
+			// TODO FIXME
+
+			std::cout << value << ':' << size_ << ':' << N << std::endl;
+
             assert(size_ < N);
 
             data_[size_++] = value;
