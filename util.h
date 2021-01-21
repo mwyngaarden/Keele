@@ -24,11 +24,6 @@ namespace Util {
 
         void add(T& value)
         {
-			// FIXME TODO
-			// TODO FIXME
-
-			std::cout << value << ':' << size_ << ':' << N << std::endl;
-
             assert(size_ < N);
 
             data_[size_++] = value;

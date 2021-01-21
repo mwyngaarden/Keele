@@ -12,9 +12,6 @@ static void uci_send    (const string& s);
 
 void uci_init()
 {
-	//thread t(uci_loop);
-
-	//t.join();
 }
 
 void uci_loop()

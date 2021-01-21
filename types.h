@@ -39,10 +39,10 @@ constexpr int MovesMax = 256;
 
 // eval
 
-constexpr int ValueDraw =     0;
-constexpr int ValueMate = 32000;
-constexpr int ValueInf  = 32001;
-constexpr int ValueNone = 32002;
+constexpr int ValueDraw =       	  0;
+constexpr int ValueMate = 		  32000;
+constexpr int ValueInf  = ValueMate + 1;
+constexpr int ValueNone = ValueInf  + 1;
 
 constexpr int ValueMateInPliesMax  =  ValueMate - PliesMax;
 constexpr int ValueMatedInPliesMax = -ValueMate + PliesMax;

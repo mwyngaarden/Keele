@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cstring>
 #include <cstdint>
 #include <x86intrin.h>
 #include "gen.h"
@@ -46,10 +47,11 @@ struct FenInfo {
     }
 };
 
+static vector<FenInfo> perft_read_epd(const string& filename);
+
 static i64 perft(Position& pos, int depth, int height, i64& illegal_moves);
 
-static vector<FenInfo> read_epd(const string& filename);
-
+// TODO: I dont think this belongs here
 string move_to_string(const Move& move)
 {
     ostringstream oss;
@@ -65,12 +67,11 @@ string move_to_string(const Move& move)
     return oss.str();
 }
 
-            
 i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cycles, bool startpos)
 {
     i64 nodes = 0;
 
-    vector<FenInfo> fen_info = read_epd("perft.epd");
+    vector<FenInfo> fen_info = perft_read_epd("perft.epd");
 
     i64 invalid = 0;
 
@@ -133,14 +134,16 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
 
 i64 perft(Position& pos, int depth, int height, i64& illegal_moves)
 {
-    if (depth == 0) return 1;
+    if (depth == 0)
+		return 1;
 
     MoveList moves;
 
     i64 legal_moves = 0;
     i64 total_moves = gen_legal_moves(moves, pos);
 
-    if (GenerateLegal && !Debug && depth == 1) return total_moves;
+    if (GenerateLegal && !Debug && depth == 1)
+		return total_moves;
 
     for (const auto& m : moves) {
         if (!GenerateLegal && !pos.move_is_legal(m)) {
@@ -162,7 +165,7 @@ i64 perft(Position& pos, int depth, int height, i64& illegal_moves)
     return legal_moves;
 }
 
-vector<FenInfo> read_epd(const string& filename)
+vector<FenInfo> perft_read_epd(const string& filename)
 {
     vector<FenInfo> fen_info;
 
@@ -195,3 +198,21 @@ vector<FenInfo> read_epd(const string& filename)
     return fen_info;
 }
 
+void perft_validate(int argc, char* argv[])
+{
+    int depth = stoi(argv[0]); 
+    bool startpos = argc >= 2 && strcmp(argv[1], "-s") == 0;
+    
+    i64 illegal_moves = 0;
+    i64 total_microseconds = 0;
+    i64 total_cycles = 0;
+
+    i64 nodes = perft(depth, illegal_moves, total_microseconds, total_cycles, startpos);
+
+    cout << "nodes: " << nodes << endl;
+    cout << "milliseconds: " << double(total_microseconds) / 1000.0 << endl;
+    cout << "knps: " << 1000.0 * double(nodes) / double(total_microseconds) << endl;
+    cout << "cpn: " << double(total_cycles) / double(nodes) << endl;
+    cout << "illegal moves: " << illegal_moves << " (" << 100.0 * illegal_moves / nodes << " %)" << endl;
+
+}
