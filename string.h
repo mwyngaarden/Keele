@@ -22,19 +22,4 @@ std::string TrimBegin   (std::string s);
 std::string TrimEnd     (std::string s);
 std::string Sanitize    (std::string s);
 
-/*
-template <std::size_t N, std::size_t L>
-class Tokenizer {
-public:
-    Tokenizer(const std::string& s, char delim = ' ');
-
-    std::size_t size() const;
-
-    const std::string& operator[](std::size_t i) const;
-
-private:
-    char data_[N][L];
-};
-*/
-
 #endif

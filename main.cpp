@@ -34,34 +34,8 @@ int main(int argc, char *argv[])
 		return EXIT_SUCCESS;
 	}
 
-	/*
-    string s1 = "\t\nHello,    World!\t";
-    string s2 = "\n\nHello,  World!\r\n\v";
-    string s3 = "\tHello,\t\n\r\v World!\t";
-
-    cout << "s1(" << s1 << ")" << endl;
-    cout << "s2(" << s2 << ")" << endl;
-    cout << "s3(" << s3 << ")" << endl;
-
-    cout << "s1(" << TrimBegin(s1) << ")" << endl;
-    cout << "s2(" << TrimBegin(s2) << ")" << endl;
-    cout << "s3(" << TrimBegin(s3) << ")" << endl;
-
-    cout << "s1(" << TrimEnd(s1) << ")" << endl;
-    cout << "s2(" << TrimEnd(s2) << ")" << endl;
-    cout << "s3(" << TrimEnd(s3) << ")" << endl;
-
-    cout << "s1(" << Trim(s1) << ")" << endl;
-    cout << "s2(" << Trim(s2) << ")" << endl;
-    cout << "s3(" << Trim(s3) << ")" << endl;
-
-    return EXIT_SUCCESS;
-	*/
-
     //setvbuf(stdin, nullptr, _IONBF, 0);
     //setvbuf(stdout, nullptr, _IONBF, 0);
-
-	// tmp
 	
 	thread search_thread(search_init);
 		

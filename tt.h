@@ -47,16 +47,4 @@ public:
 	u64 write_coll;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
 #endif

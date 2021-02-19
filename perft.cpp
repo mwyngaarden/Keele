@@ -115,8 +115,6 @@ i64 perft(int depth, i64& illegal_moves, i64& total_microseconds, i64& total_cyc
             ss  << setprecision(1) << fixed 
                 << "n = "      << setw(4) << (i + 1)            << ' '
                 << "d = "      << setw(1) << depth              << ' '
-                //<< "wn = "     << want_nodes       << ' '
-                //<< "hn = "     << have_nodes       << ' '
                 << "dn = "     << setw(1) << diff_nodes         << ' '
                 << "inv = "    << setw(1) << invalid            << ' '
                 << "cpn = "    << setw(6) << cpn                << ' '

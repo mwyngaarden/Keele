@@ -33,7 +33,9 @@ public:
 
     
     Move() { }
+
     Move(u32 data) : data_(data) { }
+
     Move(int orig, int dest, u8 capture_piece = PieceNone256)
     {
         assert(sq88_is_ok(orig));
